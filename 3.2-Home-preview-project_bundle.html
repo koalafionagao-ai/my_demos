@@ -1,0 +1,2154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multi-Persona Ledger (Local Preview)</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- React & ReactDOM (UMD for browser) -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    
+    <!-- Babel Standalone -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+            margin: 0;
+            overflow-x: hidden;
+        }
+
+        /* Hide scrollbar */
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+        /* PC Frame */
+        .pc-frame {
+            transition: all 0.3s ease;
+        }
+
+        /* Phone Frame */
+        .phone-frame {
+            width: 320px;
+            height: 680px;
+            background: white;
+            border-radius: 40px;
+            box-shadow: 0 20px 40px -10px rgba(0,0,0,0.2);
+            border: 4px solid #cbd5e1;
+            overflow: hidden;
+            position: relative;
+            flex-shrink: 0;
+            transition: all 0.3s ease;
+        }
+
+        .phone-frame.black-bg { background: black; }
+
+        .ios-notch {
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100px;
+            height: 24px;
+            background-color: black;
+            border-bottom-left-radius: 12px;
+            border-bottom-right-radius: 12px;
+            z-index: 50;
+        }
+        
+        /* Wallpaper */
+        .wallpaper-layer {
+            position: absolute;
+            inset: 0;
+            background-image: url('https://images.unsplash.com/photo-1512917774080-9991f1c4c750?q=80&w=2070&auto=format&fit=crop');
+            background-size: cover;
+            background-position: center;
+            z-index: 0;
+        }
+
+        .app-bg { background-color: #FAFAFA; }
+
+        /* Frozen Overlay */
+        .frozen-card {
+            position: relative;
+            overflow: hidden;
+            border: 1px solid #e2e8f0;
+        }
+        .frozen-card::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: rgba(243, 244, 246, 0.65);
+            backdrop-filter: blur(1.5px);
+            z-index: 10;
+            pointer-events: none;
+        }
+        .frozen-badge {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 20;
+            background: white;
+            padding: 6px 12px;
+            border-radius: 99px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-weight: 600;
+            font-size: 10px;
+            color: #64748b;
+            border: 1px solid #e2e8f0;
+        }
+
+        .property-frozen-overlay {
+            background: rgba(255, 255, 255, 0.6);
+            backdrop-filter: grayscale(100%) blur(1px);
+        }
+
+        /* Pulse Animation */
+        @keyframes pulse-highlight {
+            0% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7); transform: scale(1); }
+            50% { box-shadow: 0 0 0 10px rgba(59, 130, 246, 0.2); transform: scale(1.02); }
+            100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); transform: scale(1); }
+        }
+        .highlight-pulse {
+            animation: pulse-highlight 1s ease-out;
+            border-color: #3b82f6 !important;
+            z-index: 30;
+        }
+        
+        .animate-fade-in {
+            animation: fadeIn 0.3s ease-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Drawer */
+        .drawer-overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(0,0,0,0.4);
+            z-index: 60;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s;
+        }
+        .drawer-overlay.open {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        .drawer-content {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 70%;
+            background: white;
+            border-top-left-radius: 24px;
+            border-top-right-radius: 24px;
+            transform: translateY(100%);
+            transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            z-index: 70;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 -10px 40px rgba(0,0,0,0.1);
+        }
+        .drawer-content.open {
+            transform: translateY(0);
+        }
+
+        /* Tooltip Bubble */
+        .tooltip-bubble {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            color: #374151;
+            padding: 12px;
+            border-radius: 12px;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            z-index: 50;
+            margin-top: 8px;
+            font-size: 10px;
+            line-height: 1.4;
+            border: 1px solid #e5e7eb;
+            animation: fadeIn 0.2s ease-out;
+        }
+        .tooltip-bubble::before {
+            content: "";
+            position: absolute;
+            top: -6px;
+            left: 20px;
+            width: 12px;
+            height: 12px;
+            background: white;
+            transform: rotate(45deg);
+            border-top: 1px solid #e5e7eb;
+            border-left: 1px solid #e5e7eb;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel" data-presets="react">
+        const { useState, useEffect } = React;
+
+        // --- ICONS ---
+        const Icons = {
+            Signal: ({size=14, className}) => <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="2"><path d="M2 20h.01"/><path d="M7 20v-4"/><path d="M12 20v-8"/><path d="M17 20V8"/><path d="M22 20V4"/></svg>,
+            Wifi: ({size=14, className}) => <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/></svg>,
+            Battery: ({size=16, className}) => <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="2"><rect x="1" y="6" width="18" height="12" rx="2"/><line x1="23" y1="13" x2="23" y2="11"/></svg>,
+            Lock: ({size=16, className}) => <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>,
+            Alert: ({size=16, className}) => <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>,
+            Check: ({size=16, className}) => <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>,
+            Home: ({size=20, className}) => <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>,
+            Wallet: ({size=20, className}) => <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1"/><path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4"/></svg>,
+            User: ({size=20, className}) => <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>,
+            CreditCard: ({size=16, className}) => <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>,
+            TrendingUp: ({size=16, className}) => <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>,
+            DollarSign: ({size=14, className}) => <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>,
+            RefreshCw: ({size=14, className}) => <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/></svg>,
+            UserCheck: ({size=14, className}) => <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><polyline points="16 11 18 13 22 9"/></svg>,
+            MessageCircle: ({size=16, className}) => <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>,
+            Info: ({size=16, className}) => <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>,
+            MapPin: ({size=12, className}) => <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>,
+            Clock: ({size=12, className}) => <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>,
+            Building: ({size=14, className}) => <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="4" y="2" width="16" height="20" rx="2" ry="2"/><line x1="9" y1="22" x2="9" y2="22.01"/><line x1="15" y1="22" x2="15" y2="22.01"/><line x1="12" y1="22" x2="12" y2="22.01"/><line x1="12" y1="18" x2="12" y2="18.01"/><line x1="12" y1="14" x2="12" y2="14.01"/><line x1="12" y1="10" x2="12" y2="10.01"/><line x1="12" y1="6" x2="12" y2="6.01"/><line x1="16" y1="18" x2="16" y2="18.01"/><line x1="16" y1="14" x2="16" y2="14.01"/><line x1="16" y1="10" x2="16" y2="10.01"/><line x1="16" y1="6" x2="16" y2="6.01"/><line x1="8" y1="18" x2="8" y2="18.01"/><line x1="8" y1="14" x2="8" y2="14.01"/><line x1="8" y1="10" x2="8" y2="10.01"/><line x1="8" y1="6" x2="8" y2="6.01"/></svg>,
+            Archive: ({size=14, className}) => <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/></svg>,
+            BarChart: ({size=14, className}) => <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg>,
+            PieChart: ({size=14, className}) => <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg>,
+            List: ({size=14, className}) => <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>,
+            ChevronDown: ({size=14, className}) => <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6 9 12 15 18 9"/></svg>,
+            ChevronUp: ({size=14, className}) => <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="18 15 12 9 6 15"/></svg>,
+            X: ({size=14, className}) => <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>,
+            Monitor: ({size=16, className}) => <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>,
+            FileText: ({size=14, className}) => <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>,
+            Tag: ({size=14, className}) => <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>,
+            MoreHorizontal: ({size=16, className}) => <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>,
+            ArrowRight: ({size=14, className}) => <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>,
+            Briefcase: ({size=14, className}) => <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>,
+        };
+
+        // --- COMPONENTS ---
+
+        const BottomNav = ({ active }) => (
+            <div className="absolute bottom-0 w-full bg-white border-t border-gray-100 flex justify-around items-center pb-6 pt-3 z-50">
+                <div className={`flex flex-col items-center space-y-0.5 ${active === 'home' ? 'text-black' : 'text-gray-400'}`}>
+                    <Icons.Home size={22} className={active === 'home' ? 'stroke-2' : ''} />
+                    <span className="text-[9px] font-medium">Properties</span>
+                </div>
+                <div className={`flex flex-col items-center space-y-0.5 ${active === 'wallet' ? 'text-black' : 'text-gray-400'}`}>
+                    <Icons.Wallet size={22} className={active === 'wallet' ? 'stroke-2' : ''} />
+                    <span className="text-[9px] font-medium">Wallet</span>
+                </div>
+                <div className={`flex flex-col items-center space-y-0.5 ${active === 'profile' ? 'text-black' : 'text-gray-400'}`}>
+                    <Icons.User size={22} className={active === 'profile' ? 'stroke-2' : ''} />
+                    <span className="text-[9px] font-medium">Profile</span>
+                </div>
+            </div>
+        );
+
+        const Screen1_Lock = ({ scenario, onNotificationClick }) => {
+            let notif = { title: "No new notifications", msg: "", type: "neutral" };
+            
+            if (scenario === 'pending' || scenario === 'processing') {
+                notif = { title: "Contract Renewal Pending", msg: "The Wilshire [Unit 101] expires in 7 days. Initiate renewal.", type: "warning" };
+            } else if (scenario === 'renewed') {
+                notif = { title: "Renewal Complete", msg: "Property renewal successful. Assets restored.", type: "success" };
+            } else if (scenario === 'rented') {
+                notif = { title: "New Tenant Found", msg: "Great news! The Wilshire [Unit 101] has been successfully rented.", type: "info" };
+            }
+
+            return (
+                <div className="phone-frame black-bg">
+                    <div className="wallpaper-layer opacity-80"></div>
+                    <div className="ios-notch"></div>
+                    
+                    <div className="absolute top-0 w-full px-5 py-2 flex justify-between items-center z-20 text-xs font-medium text-white pointer-events-none">
+                        <span>9:41</span>
+                        <div className="flex items-center space-x-1">
+                            <Icons.Signal size={12} className="fill-white" />
+                            <Icons.Wifi size={12} className="text-white"/>
+                            <Icons.Battery size={14} className="fill-white" />
+                        </div>
+                    </div>
+                    
+                    <div className="flex flex-col h-full pt-12 pb-8 px-4 relative z-10">
+                        <div className="flex justify-center mb-6"><Icons.Lock size={24} className="opacity-80 text-white"/></div>
+                        <div className="text-center mb-8 text-white">
+                            <div className="text-6xl font-thin mb-1">9:41</div>
+                            <div className="text-base font-medium opacity-90">Tuesday, October 24</div>
+                        </div>
+
+                        {scenario !== 'idle' && (
+                            <div 
+                                onClick={onNotificationClick}
+                                className="bg-white/80 backdrop-blur-md rounded-2xl p-3 shadow-lg animate-fade-in text-gray-900 mx-2 cursor-pointer active:scale-95 transition-transform hover:bg-white/90 mb-3"
+                            >
+                                <div className="flex justify-between items-center mb-1">
+                                    <div className="flex items-center space-x-1.5">
+                                        <div className={`p-1 rounded ${notif.type === 'warning' ? 'bg-amber-500' : (notif.type === 'info' ? 'bg-blue-500' : 'bg-green-500')}`}>
+                                            <Icons.Home size={10} className="text-white" />
+                                        </div>
+                                        <span className="text-[10px] font-bold uppercase text-gray-600">HOME • Ledger</span>
+                                    </div>
+                                    <span className="text-[10px] text-gray-500">NOW</span>
+                                </div>
+                                <h4 className="text-sm font-semibold">{notif.title}</h4>
+                                <p className="text-xs text-gray-700 mt-0.5 leading-snug">{notif.msg}</p>
+                                <div className="text-[9px] text-gray-400 mt-2 text-right">Tap to view details</div>
+                            </div>
+                        )}
+
+                        <div className="bg-white/60 backdrop-blur-md rounded-2xl p-3 shadow-sm text-gray-900 mx-4 scale-[0.98] opacity-80">
+                                <div className="flex justify-between items-center mb-1">
+                                <div className="flex items-center space-x-1.5">
+                                    <div className="p-1 rounded bg-green-500">
+                                        <Icons.MessageCircle size={10} className="text-white" />
+                                    </div>
+                                    <span className="text-[10px] font-bold uppercase text-gray-600">MESSAGES</span>
+                                </div>
+                                <span className="text-[10px] text-gray-500">10m ago</span>
+                            </div>
+                            <h4 className="text-sm font-semibold">Mom</h4>
+                            <p className="text-xs text-gray-700 mt-0.5 leading-snug">Are you coming over for dinner? Dad made lasagna.</p>
+                        </div>
+
+                    </div>
+                </div>
+            );
+        };
+
+        const Screen2_PropertyList = ({ scenario, onAction, highlight }) => {
+            const isPending = scenario === 'pending';
+            const isProcessing = scenario === 'processing';
+            const isRenewed = scenario === 'renewed';
+            const isRented = scenario === 'rented';
+            
+            return (
+                <div className="phone-frame app-bg flex flex-col relative text-gray-900">
+                    <div className="ios-notch"></div>
+                        <div className="absolute top-0 w-full px-5 py-2 flex justify-between items-center z-20 text-xs font-medium text-black pointer-events-none">
+                        <span>9:41</span>
+                        <div className="flex items-center space-x-1">
+                            <Icons.Signal size={12} className="fill-black" />
+                            <Icons.Wifi size={12} className="text-black"/>
+                            <Icons.Battery size={14} className="fill-black" />
+                        </div>
+                    </div>
+                    
+                    <div className="px-5 pt-12 pb-4 bg-white/90 backdrop-blur border-b border-gray-100 flex justify-between items-center">
+                        <div>
+                            <h2 className="text-lg font-bold">My Properties</h2>
+                            <p className="text-[10px] text-gray-500">Welcome back, Linda</p>
+                        </div>
+                        <div className="w-8 h-8 rounded-full bg-gray-200 overflow-hidden">
+                            <img src="https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=200" className="w-full h-full object-cover" alt="User" />
+                        </div>
+                    </div>
+
+                    <div className="flex-1 overflow-y-auto p-4 no-scrollbar pb-20">
+                        <div className="mb-2 text-[10px] font-bold text-gray-400 uppercase tracking-wider">
+                            {(isPending || isProcessing) ? 'Action Required' : 'Portfolio Status'}
+                        </div>
+                        
+                        <div className={`bg-white p-3 rounded-2xl shadow-sm border border-gray-100 mb-4 transition-all duration-300 relative overflow-hidden ${highlight ? 'highlight-pulse' : ''}`}>
+                            
+                            {isProcessing && (
+                                <div className="absolute inset-0 z-20 property-frozen-overlay flex flex-col items-center justify-center text-center">
+                                    <div className="bg-white px-3 py-1.5 rounded-full shadow-md flex items-center gap-2 mb-1">
+                                        <Icons.Lock size={12} className="text-gray-500"/>
+                                        <span className="text-[10px] font-bold text-gray-600">Renewal In Progress</span>
+                                    </div>
+                                    <span className="text-[9px] font-medium text-gray-500">Property Frozen</span>
+                                </div>
+                            )}
+
+                            <div className="flex gap-3 relative z-10">
+                                <div className="w-20 h-20 rounded-xl bg-gray-100 overflow-hidden relative">
+                                    <img src="https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?q=80&w=400" className="w-full h-full object-cover" alt="Property" />
+                                    <div className={`absolute top-1 left-1 px-1.5 py-0.5 rounded text-[8px] font-bold uppercase 
+                                        ${isPending ? 'bg-amber-100 text-amber-700' : 
+                                            isRented ? 'bg-blue-100 text-blue-700' : 
+                                            isProcessing ? 'bg-gray-100 text-gray-500' : 'bg-green-100 text-green-700'}`}>
+                                        {isPending ? 'Expiring' : (isRented ? 'Occupied' : (isProcessing ? 'Frozen' : 'Available'))}
+                                    </div>
+                                </div>
+                                <div className="flex-1 py-0.5">
+                                    <div className="flex justify-between items-start">
+                                        <h3 className="text-sm font-bold">The Wilshire</h3>
+                                        <span className="text-sm font-semibold">{isRented ? '$1,450' : '$1,200'}</span>
+                                    </div>
+                                    <div className="flex items-center text-gray-500 mb-1">
+                                        <Icons.MapPin size={10} className="mr-1"/>
+                                        <span className="text-[10px] truncate w-24">10580 Wilshire Blvd, LA</span>
+                                    </div>
+                                    
+                                    <div className="flex items-center justify-between bg-gray-50 rounded-lg p-1.5 mb-2">
+                                        <div className="flex items-center gap-1">
+                                                <Icons.Clock size={10} className="text-gray-400"/>
+                                                <span className="text-[9px] font-medium text-gray-600">
+                                                {isPending ? 'Ends: Nov 15 (7 Days)' : 'New Lease: 12 Mos'}
+                                                </span>
+                                        </div>
+                                        <span className="text-[9px] font-bold text-gray-800">
+                                            {isRented ? '1/1 Occupied' : (isPending ? '1/1 Occupied' : '0/1 Vacant')}
+                                        </span>
+                                    </div>
+                                    
+                                    {isPending && (
+                                        <div className="flex gap-2">
+                                            <button 
+                                                onClick={() => onAction('initiate')} 
+                                                className="w-full py-1.5 bg-black text-white rounded-lg text-[10px] font-semibold flex items-center justify-center gap-1 active:scale-95 transition-transform"
+                                            >
+                                                <Icons.RefreshCw size={10} /> Initiate Renewal
+                                            </button>
+                                        </div>
+                                    )}
+                                    {isProcessing && (
+                                        <button disabled className="w-full py-1.5 bg-gray-100 text-gray-400 border border-gray-200 rounded-lg text-[10px] font-semibold flex items-center justify-center gap-1">
+                                            Processing...
+                                        </button>
+                                    )}
+                                    {isRenewed && (
+                                        <button 
+                                            onClick={() => onAction('available')}
+                                            className="w-full py-1.5 bg-green-50 text-green-700 border border-green-100 rounded-lg text-[10px] font-semibold flex items-center justify-center gap-1 active:scale-95 transition-transform"
+                                        >
+                                            <Icons.Check size={10} /> Available for Rent
+                                        </button>
+                                    )}
+                                    {isRented && (
+                                        <button 
+                                            onClick={() => onAction('tenant')}
+                                            className="w-full py-1.5 bg-blue-50 text-blue-700 border border-blue-100 rounded-lg text-[10px] font-semibold flex items-center justify-center gap-1 active:scale-95 transition-transform"
+                                        >
+                                            <Icons.UserCheck size={10} /> Tenant in Residence
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="mb-2 text-[10px] font-bold text-gray-400 uppercase tracking-wider">All Properties (3 Units)</div>
+                        
+                        <div className="bg-white p-3 rounded-2xl shadow-sm border border-gray-100 mb-2 opacity-90">
+                            <div className="flex gap-3">
+                                <div className="w-20 h-20 rounded-xl bg-gray-100 overflow-hidden"><img src="https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?q=80&w=400" className="w-full h-full object-cover" alt="Property" /></div>
+                                <div className="flex-1 py-0.5">
+                                    <div className="flex justify-between items-start"><h3 className="text-sm font-bold">Sunset Lofts</h3><span className="text-sm font-semibold">$1,800</span></div>
+                                    <div className="flex items-center text-gray-500 mb-1">
+                                        <Icons.MapPin size={10} className="mr-1"/>
+                                        <span className="text-[10px] truncate w-24">1425 Sunset Blvd, Echo Park</span>
+                                    </div>
+                                    <div className="flex items-center justify-between bg-gray-50 rounded-lg p-1.5">
+                                        <span className="text-[9px] font-medium text-gray-600">Lease: 6 Mos Left</span>
+                                        <span className="text-[9px] font-bold text-amber-600">2/3 Occupied</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="bg-white p-3 rounded-2xl shadow-sm border border-gray-100 mb-2 opacity-90">
+                            <div className="flex gap-3">
+                                <div className="w-20 h-20 rounded-xl bg-gray-100 overflow-hidden"><img src="https://images.unsplash.com/photo-1493809842364-78817add7ffb?q=80&w=400" className="w-full h-full object-cover" alt="Property" /></div>
+                                <div className="flex-1 py-0.5">
+                                    <div className="flex justify-between items-start"><h3 className="text-sm font-bold">Melrose Place</h3><span className="text-sm font-semibold">$2,400</span></div>
+                                    <div className="flex items-center text-gray-500 mb-1">
+                                        <Icons.MapPin size={10} className="mr-1"/>
+                                        <span className="text-[10px] truncate w-24">8400 Melrose Ave, WeHo</span>
+                                    </div>
+                                    <div className="flex items-center justify-between bg-gray-50 rounded-lg p-1.5">
+                                        <span className="text-[9px] font-medium text-gray-600">Lease: 9 Mos Left</span>
+                                        <span className="text-[9px] font-bold text-green-600">2/2 Occupied</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <BottomNav active="home" />
+                </div>
+            );
+        };
+
+        const Screen3_Wallet = ({ scenario, highlight }) => {
+            const [viewMode, setViewMode] = useState('assets'); 
+            const [showHistory, setShowHistory] = useState(false);
+            const [showProjectionInfo, setShowProjectionInfo] = useState(false);
+            
+            const isProcessing = scenario === 'processing'; 
+            const isRented = scenario === 'rented';
+            const isPending = scenario === 'pending';
+            
+            // Logic: Card is Frozen ONLY if scenario is 'processing'
+            const isFrozen = isProcessing;
+
+            // --- ASSET VIEW MATH ---
+            const withdrawable = '18,500';
+            let pendingVal = 3200;
+            if (isRented) pendingVal += 1450;
+            const pendingDisplay = pendingVal.toLocaleString();
+            const frozenDisplay = '10,800';
+            const grossTotal = 18500 + pendingVal + 10800;
+            const totalBalance = grossTotal.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+
+            // --- PROJECTED VIEW MATH ---
+            const rent1 = isRented ? 1450 : 1200;
+            const year1 = (rent1 * 9) - (rent1 * 0.10);
+            const cycle1 = year1 * 3;
+            const rent2 = 1800; const year2 = (rent2 * 9) - (rent2 * 0.10); const cycle2 = year2 * 3;
+            const rent3 = 2400; const year3 = (rent3 * 9) - (rent3 * 0.10); const cycle3 = year3 * 3;
+            const totalProjected = (cycle1 + cycle2 + cycle3).toLocaleString();
+            const settledIncome = withdrawable; 
+
+            // Unit 101 Values Logic
+            let u101_Rent = '$0';
+            let u101_Comm = '$0';
+            let u101_Settled = '$0';
+            
+            if (isRented) {
+                u101_Rent = '+$1,450';
+                u101_Comm = '-$145';
+                u101_Settled = '$0';
+            } else if (isPending) {
+                u101_Rent = '$1,200';
+                u101_Comm = 'Paid';
+                u101_Settled = '$1,200';
+            }
+
+            return (
+                <div className="phone-frame app-bg flex flex-col relative text-gray-900">
+                    <div className="ios-notch"></div>
+                    <div className="absolute top-0 w-full px-5 py-2 flex justify-between items-center z-20 text-xs font-medium text-black pointer-events-none">
+                        <span>9:41</span>
+                        <div className="flex items-center space-x-1">
+                            <Icons.Signal size={12} className="fill-black" />
+                            <Icons.Wifi size={12} className="text-black"/>
+                            <Icons.Battery size={14} className="fill-black" />
+                        </div>
+                    </div>
+                    
+                    <div className="pt-12 pb-2 relative z-20 flex justify-center">
+                        <div className="bg-black text-white rounded-3xl p-4 shadow-xl w-[88%] mb-2 relative">
+                            
+                            <div className="flex bg-white/10 p-1 rounded-xl mb-4 backdrop-blur-sm">
+                                <button 
+                                    onClick={() => setViewMode('assets')}
+                                    className={`flex-1 py-1.5 text-[10px] font-bold rounded-lg transition-all ${viewMode === 'assets' ? 'bg-white text-black shadow-sm' : 'text-white/60 hover:text-white'}`}
+                                >
+                                    My Assets
+                                </button>
+                                <button 
+                                    onClick={() => setViewMode('projected')}
+                                    className={`flex-1 py-1.5 text-[10px] font-bold rounded-lg transition-all ${viewMode === 'projected' ? 'bg-white text-black shadow-sm' : 'text-white/60 hover:text-white'}`}
+                                >
+                                    Projection
+                                </button>
+                            </div>
+
+                            <div className="flex justify-between items-start mb-4">
+                                <div>
+                                    <p className="text-[10px] font-medium text-gray-400 uppercase tracking-wider mb-1">
+                                        {viewMode === 'assets' ? 'Gross Asset Value' : '3-Year Projected Income'}
+                                    </p>
+                                    <div className="flex items-center gap-2">
+                                        <h1 className="text-2xl font-bold tracking-tight">
+                                            ${viewMode === 'assets' ? totalBalance : totalProjected}
+                                        </h1>
+                                        {viewMode === 'projected' && (
+                                            <button 
+                                                onClick={() => setShowProjectionInfo(!showProjectionInfo)}
+                                                className="text-gray-400 hover:text-white transition-colors"
+                                            >
+                                                <Icons.Info size={14} />
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
+                                {viewMode === 'assets' && (
+                                    <button 
+                                        onClick={() => setShowHistory(true)}
+                                        className="p-2 rounded-full bg-white/10 hover:bg-white/20 transition-colors"
+                                    >
+                                        <Icons.List size={18} className="text-white"/>
+                                    </button>
+                                )}
+                            </div>
+                            
+                            {viewMode === 'projected' && showProjectionInfo && (
+                                <div className="tooltip-bubble" onClick={() => setShowProjectionInfo(false)}>
+                                    <div className="flex justify-between items-start mb-1">
+                                        <strong>Policy:</strong>
+                                        <Icons.X size={12} className="cursor-pointer"/>
+                                    </div>
+                                    <p>Estimation Model: 9 months occupancy per year. Includes 1 tenant turnover/year (10% commission deducted). Excludes deposits.</p>
+                                </div>
+                            )}
+
+                            {viewMode === 'assets' && (
+                                <div className="flex gap-2 animate-fade-in">
+                                    <div className="flex-1 bg-emerald-500/20 rounded-xl p-2 backdrop-blur-md border border-emerald-400/30">
+                                        <div className="text-[8px] text-emerald-100 opacity-90 mb-0.5 uppercase tracking-wide">Withdrawable</div>
+                                        <div className="font-semibold text-[10px] text-white">${withdrawable}</div>
+                                    </div>
+                                    <div className="flex-1 bg-amber-500/20 rounded-xl p-2 backdrop-blur-md border border-amber-400/30">
+                                        <div className="text-[8px] text-amber-100 opacity-90 mb-0.5 uppercase tracking-wide">Pending</div>
+                                        <div className="font-semibold text-[10px] text-white">${pendingDisplay}</div>
+                                    </div>
+                                    <div className="flex-1 bg-cyan-500/20 rounded-xl p-2 backdrop-blur-md border border-cyan-400/30">
+                                        <div className="text-[8px] text-cyan-100 opacity-90 mb-0.5 uppercase tracking-wide">Frozen</div>
+                                        <div className="font-semibold text-[10px] text-white">${frozenDisplay}</div>
+                                    </div>
+                                </div>
+                            )}
+                            
+                            {viewMode === 'projected' && (
+                                <div className="flex gap-2 animate-fade-in">
+                                    <div className="flex-1 bg-white/10 rounded-xl p-2 backdrop-blur-md border border-white/10 flex flex-col justify-center">
+                                        <div className="text-[8px] opacity-70 mb-0.5 uppercase">Actual Settled</div>
+                                        <div className="font-semibold text-xs text-white">${settledIncome}</div>
+                                    </div>
+                                    <div className="flex-1 bg-white/10 rounded-xl p-2 backdrop-blur-md border border-white/10 flex flex-col justify-center text-right">
+                                        <div className="text-[8px] opacity-70 mb-0.5 uppercase">Performance</div>
+                                        <div className="font-semibold text-xs text-green-300">On Track</div>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    <div className="flex-1 overflow-y-auto px-5 no-scrollbar pb-20 -mt-2">
+                        
+                        {viewMode === 'assets' ? (
+                            <React.Fragment>
+                                <h2 className="text-sm font-bold text-gray-800 mb-4 flex justify-between items-center px-1">
+                                    Current Month Status
+                                    <span className="text-[10px] font-normal text-gray-400">Real-time</span>
+                                </h2>
+
+                                {/* Unit 101 */}
+                                <div className={`bg-white rounded-2xl p-4 shadow-sm border border-gray-100 mb-3 relative overflow-hidden transition-all duration-300 
+                                    ${isFrozen ? 'frozen-card' : ''} 
+                                    ${highlight ? 'highlight-pulse' : ''}
+                                `}>
+                                    {isFrozen && <div className="frozen-badge"><Icons.Lock size={10} /> Frozen</div>}
+                                    
+                                    <div className={`flex justify-between items-start mb-3 ${isFrozen ? 'opacity-50' : ''}`}>
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center font-bold text-xs text-gray-600">Wil</div>
+                                            <div>
+                                                <div className="text-xs font-bold text-gray-800">The Wilshire</div>
+                                                <div className="text-[10px] text-gray-400">Unit 101</div>
+                                            </div>
+                                        </div>
+                                        <div className={`text-[9px] font-bold px-2 py-1 rounded-lg ${isRented ? 'bg-amber-50 text-amber-700' : (isFrozen ? 'bg-gray-100 text-gray-500' : (isPending ? 'bg-green-50 text-green-700' : 'bg-green-50 text-green-700'))}`}>
+                                            {isRented ? 'Pending Clearance' : (isFrozen ? 'Locked' : (isPending ? 'Active (Expiring)' : 'Active'))}
+                                        </div>
+                                    </div>
+                                    <div className={`flex justify-between text-[10px] border-t border-gray-50 pt-2 ${isFrozen ? 'opacity-50' : ''}`}>
+                                        <div className="text-center">
+                                            <div className="text-gray-400 mb-0.5">Rent</div>
+                                            <div className="font-semibold">{u101_Rent}</div>
+                                        </div>
+                                        <div className="text-center">
+                                            <div className="text-gray-400 mb-0.5">Commission</div>
+                                            <div className={`font-semibold ${isRented ? 'text-red-500' : 'text-gray-900'}`}>{u101_Comm}</div>
+                                        </div>
+                                        <div className="text-center">
+                                            <div className="text-gray-400 mb-0.5">Settled</div>
+                                            <div className="font-semibold text-gray-900">{u101_Settled}</div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Unit 204 */}
+                                <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 mb-3">
+                                    <div className="flex justify-between items-start mb-3">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center font-bold text-xs text-gray-600">Sun</div>
+                                            <div>
+                                                <div className="text-xs font-bold text-gray-800">Sunset Lofts</div>
+                                                <div className="text-[10px] text-gray-400">Unit 204</div>
+                                            </div>
+                                        </div>
+                                        <div className="text-[9px] font-bold px-2 py-1 rounded-lg bg-green-50 text-green-700">Settled</div>
+                                    </div>
+                                    <div className="flex justify-between text-[10px] border-t border-gray-50 pt-2">
+                                        <div className="text-center"><div className="text-gray-400 mb-0.5">Rent</div><div className="font-semibold text-gray-800">$1,800</div></div>
+                                        <div className="text-center"><div className="text-gray-400 mb-0.5">Commission</div><div className="font-semibold text-gray-900">Paid</div></div>
+                                        <div className="text-center"><div className="text-gray-400 mb-0.5">Settled</div><div className="font-semibold text-green-600">$1,800</div></div>
+                                    </div>
+                                </div>
+
+                                    {/* Unit 305 */}
+                                    <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 mb-3">
+                                    <div className="flex justify-between items-start mb-3">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center font-bold text-xs text-gray-600">Mel</div>
+                                            <div>
+                                                <div className="text-xs font-bold text-gray-800">Melrose Place</div>
+                                                <div className="text-[10px] text-gray-400">Unit 305</div>
+                                            </div>
+                                        </div>
+                                        <div className="text-[9px] font-bold px-2 py-1 rounded-lg bg-green-50 text-green-700">Settled</div>
+                                    </div>
+                                    <div className="flex justify-between text-[10px] border-t border-gray-50 pt-2">
+                                        <div className="text-center"><div className="text-gray-400 mb-0.5">Rent</div><div className="font-semibold text-gray-800">$2,400</div></div>
+                                        <div className="text-center"><div className="text-gray-400 mb-0.5">Commission</div><div className="font-semibold text-gray-900">Paid</div></div>
+                                        <div className="text-center"><div className="text-gray-400 mb-0.5">Settled</div><div className="font-semibold text-green-600">$2,400</div></div>
+                                    </div>
+                                </div>
+                            </React.Fragment>
+                        ) : (
+                            <React.Fragment>
+                                <h2 className="text-sm font-bold text-gray-800 mb-4 flex justify-between items-center px-1">
+                                    Projected Breakdown
+                                    <span className="text-[10px] font-normal text-gray-400">3-Year Cycle</span>
+                                </h2>
+
+                                <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 mb-3">
+                                    <div className="flex justify-between items-center mb-2">
+                                        <h3 className="text-xs font-bold text-gray-800">The Wilshire</h3>
+                                        <span className="text-[10px] font-mono font-bold text-green-600">${cycle1.toLocaleString()}</span>
+                                    </div>
+                                    <div className="w-full bg-gray-100 rounded-full h-1.5 mb-2 overflow-hidden">
+                                        <div className="bg-green-500 h-1.5 rounded-full" style={{width: '30%'}}></div>
+                                    </div>
+                                    <div className="flex justify-between text-[9px] text-gray-500">
+                                        <span>Rate: ${rent1}/mo</span>
+                                        <span>Net/Yr: ${year1.toLocaleString()}</span>
+                                    </div>
+                                </div>
+
+                                <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 mb-3">
+                                    <div className="flex justify-between items-center mb-2">
+                                        <h3 className="text-xs font-bold text-gray-800">Sunset Lofts</h3>
+                                        <span className="text-[10px] font-mono font-bold text-gray-800">${cycle2.toLocaleString()}</span>
+                                    </div>
+                                    <div className="w-full bg-gray-100 rounded-full h-1.5 mb-2 overflow-hidden">
+                                        <div className="bg-blue-500 h-1.5 rounded-full" style={{width: '45%'}}></div>
+                                    </div>
+                                    <div className="flex justify-between text-[9px] text-gray-500">
+                                        <span>Rate: ${rent2}/mo</span>
+                                        <span>Net/Yr: ${year2.toLocaleString()}</span>
+                                    </div>
+                                </div>
+
+                                <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 mb-3">
+                                    <div className="flex justify-between items-center mb-2">
+                                        <h3 className="text-xs font-bold text-gray-800">Melrose Place</h3>
+                                        <span className="text-[10px] font-mono font-bold text-gray-800">${cycle3.toLocaleString()}</span>
+                                    </div>
+                                    <div className="w-full bg-gray-100 rounded-full h-1.5 mb-2 overflow-hidden">
+                                        <div className="bg-purple-500 h-1.5 rounded-full" style={{width: '60%'}}></div>
+                                    </div>
+                                    <div className="flex justify-between text-[9px] text-gray-500">
+                                        <span>Rate: ${rent3}/mo</span>
+                                        <span>Net/Yr: ${year3.toLocaleString()}</span>
+                                    </div>
+                                </div>
+                            </React.Fragment>
+                        )}
+
+                    </div>
+
+                    <div 
+                        className={`drawer-overlay ${showHistory ? 'open' : ''}`} 
+                        onClick={() => setShowHistory(false)}
+                    ></div>
+                    <div className={`drawer-content ${showHistory ? 'open' : ''}`}>
+                        <div className="p-4 border-b border-gray-100 flex justify-between items-center">
+                            <h3 className="text-sm font-bold text-gray-900">Transaction History</h3>
+                            <button onClick={() => setShowHistory(false)} className="p-1 rounded-full hover:bg-gray-100">
+                                <Icons.X size={16} className="text-gray-500"/>
+                            </button>
+                        </div>
+                        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                            {isRented && (
+                                <div className="flex items-start gap-3">
+                                    <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center text-green-600 flex-shrink-0">
+                                        <Icons.DollarSign size={16} />
+                                    </div>
+                                    <div className="flex-1 border-b border-gray-50 pb-3">
+                                        <div className="flex justify-between mb-1">
+                                            <span className="text-xs font-bold text-gray-800">Rent Payment</span>
+                                            <span className="text-xs font-bold text-green-600">+$1,450.00</span>
+                                        </div>
+                                        <div className="text-[10px] text-gray-500">The Wilshire - Unit 101</div>
+                                        <div className="text-[9px] text-amber-500 mt-1">Pending Clearance • #102</div>
+                                    </div>
+                                </div>
+                            )}
+                            {isRented && (
+                                <div className="flex items-start gap-3">
+                                    <div className="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center text-red-600 flex-shrink-0">
+                                        <Icons.Building size={16} />
+                                    </div>
+                                    <div className="flex-1 border-b border-gray-50 pb-3">
+                                        <div className="flex justify-between mb-1">
+                                            <span className="text-xs font-bold text-gray-800">Platform Commission</span>
+                                            <span className="text-xs font-bold text-red-600">-$145.00</span>
+                                        </div>
+                                        <div className="text-[10px] text-gray-500">Service Fee (10%)</div>
+                                        <div className="text-[9px] text-gray-400 mt-1">Pending Deduction • #103</div>
+                                    </div>
+                                </div>
+                            )}
+                            <div className="flex items-start gap-3 opacity-60">
+                                <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center text-green-600 flex-shrink-0">
+                                    <Icons.DollarSign size={16} />
+                                </div>
+                                <div className="flex-1 border-b border-gray-50 pb-3">
+                                    <div className="flex justify-between mb-1">
+                                        <span className="text-xs font-bold text-gray-800">Rent Payment</span>
+                                        <span className="text-xs font-bold text-green-600">+$2,400.00</span>
+                                    </div>
+                                    <div className="text-[10px] text-gray-500">Melrose Place - Unit 305</div>
+                                    <div className="text-[9px] text-gray-400 mt-1">Settled • Oct 01</div>
+                                </div>
+                            </div>
+                                <div className="flex items-start gap-3 opacity-60">
+                                <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-600 flex-shrink-0">
+                                    <Icons.Archive size={16} />
+                                </div>
+                                <div className="flex-1 border-b border-gray-50 pb-3">
+                                    <div className="flex justify-between mb-1">
+                                        <span className="text-xs font-bold text-gray-800">Withdrawal</span>
+                                        <span className="text-xs font-bold text-gray-900">-$5,000.00</span>
+                                    </div>
+                                    <div className="text-[10px] text-gray-500">Transfer to Bank ****8821</div>
+                                    <div className="text-[9px] text-gray-400 mt-1">Completed • Sep 28</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <BottomNav active="wallet" />
+                </div>
+            );
+        };
+
+        const Screen5_TenantPropList = ({ scenario, onAction, highlight }) => {
+            const getStatusTag = () => {
+                if (scenario === 'locked') return 'Expiring';
+                if (scenario === 'action_needed') return 'Expiring';
+                if (scenario === 'processing') return 'Processing';
+                if (scenario === 'renewed') return 'Signed';
+                return 'Expiring';
+            };
+
+            const tagColor = () => {
+                if (scenario === 'renewed') return 'bg-green-100 text-green-700';
+                if (scenario === 'processing') return 'bg-blue-100 text-blue-700';
+                return 'bg-amber-100 text-amber-700';
+            };
+            
+            const currentRent = (scenario === 'processing' || scenario === 'renewed') ? '$1,450' : '$1,200';
+
+            const leaseTermText = (scenario === 'processing' || scenario === 'renewed') 
+                ? 'New Lease: 1 Year' 
+                : 'Expires in 7 Days';
+
+            return (
+                <div className="phone-frame app-bg flex flex-col relative text-gray-900">
+                    <div className="ios-notch"></div>
+                        <div className="absolute top-0 w-full px-5 py-2 flex justify-between items-center z-20 text-xs font-medium text-black pointer-events-none">
+                        <span>9:41</span>
+                        <div className="flex items-center space-x-1">
+                            <Icons.Signal size={12} className="fill-black" />
+                            <Icons.Wifi size={12} className="text-black"/>
+                            <Icons.Battery size={14} className="fill-black" />
+                        </div>
+                    </div>
+                    
+                    <div className="px-5 pt-12 pb-4 bg-white/90 backdrop-blur border-b border-gray-100 flex justify-between items-center">
+                        <div>
+                            <h2 className="text-lg font-bold">My Home</h2>
+                            <p className="text-[10px] text-gray-500">Welcome back, Emily</p>
+                        </div>
+                        <div className="w-8 h-8 rounded-full bg-indigo-100 overflow-hidden border border-indigo-50">
+                            <img src="https://images.unsplash.com/photo-1438761681033-6461ffad8d80?q=80&w=200" className="w-full h-full object-cover" alt="Emily" />
+                        </div>
+                    </div>
+
+                    <div className="flex-1 overflow-y-auto p-4 no-scrollbar pb-20">
+                        <div className="mb-2 text-[10px] font-bold text-gray-400 uppercase tracking-wider">
+                            Current Residence
+                        </div>
+                        
+                        <div className={`bg-white p-3 rounded-2xl shadow-sm border border-gray-100 mb-4 transition-all duration-300 relative overflow-hidden ${highlight ? 'highlight-pulse' : ''}`}>
+                            <div className="flex gap-3 relative z-10">
+                                <div className="w-20 h-20 rounded-xl bg-gray-100 overflow-hidden relative">
+                                    <img src="https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?q=80&w=400" className="w-full h-full object-cover" alt="Property" />
+                                    <div className={`absolute top-1 left-1 px-1.5 py-0.5 rounded text-[8px] font-bold uppercase ${tagColor()}`}>
+                                        {getStatusTag()}
+                                    </div>
+                                </div>
+                                <div className="flex-1 py-0.5">
+                                    <div className="flex justify-between items-start">
+                                        <h3 className="text-sm font-bold">The Wilshire</h3>
+                                        <span className="text-sm font-semibold">{currentRent}</span>
+                                    </div>
+                                    <div className="flex items-center text-gray-500 mb-1">
+                                        <Icons.MapPin size={10} className="mr-1"/>
+                                        <span className="text-[10px] truncate w-24">10580 Wilshire Blvd, Unit 101</span>
+                                    </div>
+                                    
+                                    <div className="flex items-center justify-between bg-gray-50 rounded-lg p-1.5 mb-2">
+                                            <span className="text-[9px] font-medium text-gray-600">
+                                            {leaseTermText}
+                                            </span>
+                                    </div>
+                                    
+                                    {/* Locked State */}
+                                    {scenario === 'locked' && (
+                                        <React.Fragment>
+                                            <div className="w-full py-1.5 bg-gray-100 text-gray-400 rounded-lg text-[10px] font-semibold flex items-center justify-center gap-1 cursor-not-allowed">
+                                                Cannot Renew
+                                            </div>
+                                            <div className="text-[9px] text-gray-400 mt-1 leading-tight text-center">
+                                                Tenant cannot renew until the landlord completes the renewal
+                                            </div>
+                                        </React.Fragment>
+                                    )}
+
+                                    {/* Action Needed */}
+                                    {scenario === 'action_needed' && (
+                                        <div className="flex items-center gap-3 mt-2">
+                                            <button 
+                                                onClick={() => onAction('renew')} 
+                                                className="flex-1 py-1.5 bg-black text-white rounded-lg text-[10px] font-semibold flex items-center justify-center gap-1 active:scale-95 transition-transform shadow-md"
+                                            >
+                                                <Icons.RefreshCw size={10} /> Renew
+                                            </button>
+                                            <span 
+                                                onClick={() => onAction('estimate')} 
+                                                className="text-blue-600 text-[10px] font-bold underline cursor-pointer hover:text-blue-800"
+                                            >
+                                                Estimate New Rent
+                                            </span>
+                                        </div>
+                                    )}
+
+                                    {/* Processing State */}
+                                    {scenario === 'processing' && (
+                                        <div className="mt-2">
+                                            <button 
+                                                onClick={() => onAction('proceed_pay')} 
+                                                className="w-full py-1.5 bg-black text-white rounded-lg text-[10px] font-semibold flex items-center justify-center gap-1 active:scale-95 transition-transform shadow-md"
+                                            >
+                                                Proceed to Pay
+                                            </button>
+                                        </div>
+                                    )}
+
+                                    {/* Renewed State */}
+                                    {scenario === 'renewed' && (
+                                        <div className="mt-2">
+                                                <button 
+                                                onClick={() => onAction('view_bill')}
+                                                className="w-full py-1.5 bg-white text-black border border-gray-200 rounded-lg text-[10px] font-semibold flex items-center justify-center gap-1 active:scale-95 transition-transform"
+                                            >
+                                                <Icons.List size={10} /> Bill
+                                            </button>
+                                            <div className="mt-2 flex justify-center">
+                                                <span className="text-[9px] text-blue-600 font-medium underline cursor-pointer">View Signed Renewal Contract</span>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="mb-2 text-[10px] font-bold text-gray-400 uppercase tracking-wider mt-4">
+                            Lease History
+                        </div>
+
+                        {/* Old Contract (appears when renewed or processing) */}
+                        {(scenario === 'renewed' || scenario === 'processing') && (
+                            <div className="bg-white p-3 rounded-2xl shadow-sm border border-gray-100 mb-2 opacity-90 animate-fade-in">
+                                <div className="flex gap-3">
+                                    <div className="w-20 h-20 rounded-xl bg-gray-100 overflow-hidden relative">
+                                        <img src="https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?q=80&w=400" className="w-full h-full object-cover grayscale" alt="Property" />
+                                        <div className="absolute top-1 left-1 px-1.5 py-0.5 rounded text-[8px] font-bold uppercase bg-amber-100 text-amber-700">
+                                            Expiring
+                                        </div>
+                                    </div>
+                                    <div className="flex-1 py-0.5">
+                                        <div className="flex justify-between items-start">
+                                            <h3 className="text-sm font-bold text-gray-500">The Wilshire</h3>
+                                            <span className="text-sm font-semibold text-gray-500">$1,200</span>
+                                        </div>
+                                        <div className="flex items-center text-gray-400 mb-1">
+                                            <Icons.MapPin size={10} className="mr-1"/>
+                                            <span className="text-[10px] truncate w-24">10580 Wilshire Blvd, Unit 101</span>
+                                        </div>
+                                        <div className="text-[9px] text-gray-400 mt-1">
+                                            Contract: 2023-2024
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Expired Residence */}
+                        <div className="bg-white p-3 rounded-2xl shadow-sm border border-gray-100 mb-2 opacity-50">
+                            <div className="flex gap-3">
+                                <div className="w-20 h-20 rounded-xl bg-gray-100 overflow-hidden relative">
+                                    <img src="https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?q=80&w=400" className="w-full h-full object-cover grayscale" alt="Property" />
+                                    <div className="absolute top-1 left-1 px-1.5 py-0.5 rounded text-[8px] font-bold uppercase bg-gray-200 text-gray-500">
+                                        Expired
+                                    </div>
+                                </div>
+                                <div className="flex-1 py-0.5">
+                                    <div className="flex justify-between items-start">
+                                        <h3 className="text-sm font-bold text-gray-500">Sunset Blvd</h3>
+                                    </div>
+                                    <div className="flex items-center text-gray-400 mb-1">
+                                        <Icons.MapPin size={10} className="mr-1"/>
+                                        <span className="text-[10px] truncate w-24">1425 Sunset Blvd</span>
+                                    </div>
+                                    <div className="text-[9px] text-gray-400 mt-1">
+                                        Contract: 2021-2022
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <BottomNav active="home" />
+                </div>
+            );
+        };
+
+        const Screen6_TenantWallet = ({ walletView, onAction, highlightCard }) => {
+            const showFullHistory = walletView === 'installments';
+            
+            const balance = showFullHistory ? '75.00' : '4,250.00';
+            const points = showFullHistory ? '12,500' : '12,450';
+            const vouchers = showFullHistory ? '1 Active' : '2 Active';
+
+            return (
+                <div className="phone-frame app-bg flex flex-col relative text-gray-900">
+                    <div className="ios-notch"></div>
+                    <div className="absolute top-0 w-full px-5 py-2 flex justify-between items-center z-30 text-xs font-medium text-black pointer-events-none">
+                        <span>9:41</span>
+                        <div className="flex items-center space-x-1">
+                            <Icons.Signal size={12} className="fill-black" />
+                            <Icons.Wifi size={12} className="text-black"/>
+                            <Icons.Battery size={14} className="fill-black" />
+                        </div>
+                    </div>
+
+                    <div className="px-5 pt-12 pb-2 bg-white/80 backdrop-blur-md border-b border-gray-100/50 flex justify-between items-center relative z-20">
+                        <div>
+                            <h2 className="text-lg font-bold">My Wallet</h2>
+                            <p className="text-[10px] text-gray-500">Emily's Account</p>
+                        </div>
+                        <div className="w-8 h-8 rounded-full bg-indigo-100 overflow-hidden border border-indigo-50">
+                            <img src="https://images.unsplash.com/photo-1438761681033-6461ffad8d80?q=80&w=200" className="w-full h-full object-cover" alt="Emily" />
+                        </div>
+                    </div>
+                    
+                    <div className="pt-4 pb-2 relative z-10 flex justify-center">
+                        <div className="bg-black text-white rounded-3xl p-4 shadow-xl w-[88%] mb-2 relative">
+                            <div className="flex justify-between items-start mb-4">
+                                <div>
+                                    <p className="text-[10px] font-medium text-gray-400 uppercase tracking-wider mb-1">
+                                        Wallet Balance
+                                    </p>
+                                    <h1 className="text-2xl font-bold tracking-tight">${balance}</h1>
+                                </div>
+                                    <div className="flex flex-col items-end">
+                                    <div className="flex items-center gap-1 bg-white/10 px-2 py-1 rounded-full">
+                                        <Icons.Tag size={10} className="text-yellow-400"/>
+                                        <span className="text-[10px] font-bold">Gold Member</span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div className="flex gap-2 animate-fade-in">
+                                <div className="flex-1 bg-white/10 rounded-xl p-2 backdrop-blur-md border border-white/10">
+                                    <div className="text-[8px] opacity-70 mb-0.5 uppercase">Credit Points</div>
+                                    <div className="font-semibold text-[10px] text-white">{points} pts</div>
+                                </div>
+                                <div className="flex-1 bg-white/10 rounded-xl p-2 backdrop-blur-md border border-white/10">
+                                    <div className="text-[8px] opacity-70 mb-0.5 uppercase">Vouchers</div>
+                                    <div className="font-semibold text-[10px] text-white">{vouchers}</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="flex-1 overflow-y-auto px-5 no-scrollbar pb-20 -mt-2 relative z-0 pt-4">
+                        
+                        {/* SCENARIO: ESTIMATE */}
+                        {walletView === 'estimate' && (
+                            <div className={`bg-white rounded-2xl p-4 shadow-sm border border-gray-100 mb-3 ${highlightCard ? 'highlight-pulse' : 'animate-fade-in'}`}>
+                                <div className="flex items-center justify-between mb-3 border-b border-gray-100 pb-2">
+                                    <h2 className="text-sm font-bold text-gray-800 flex items-center gap-2">
+                                        <Icons.FileText size={14} className="text-blue-500"/> Estimated Renewal
+                                    </h2>
+                                    <span className="text-[9px] bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full font-bold">Review</span>
+                                </div>
+                                
+                                <div className="space-y-2 mb-4">
+                                    <div className="flex justify-between text-[10px]">
+                                        <span className="text-gray-500">Max Renewal Term</span>
+                                        <span className="font-bold">1 Year</span>
+                                    </div>
+                                    <div className="flex justify-between text-[10px]">
+                                        <span className="text-gray-500">New Monthly Rent (+20%)</span>
+                                        <span className="font-bold text-gray-900">$1,450.00</span>
+                                    </div>
+                                    <div className="flex justify-between text-[10px]">
+                                        <span className="text-gray-500">Returning Tenant Discount</span>
+                                        <span className="font-bold text-green-600">-$50.00/mo</span>
+                                    </div>
+                                    <div className="bg-gray-50 p-2 rounded-lg mt-2">
+                                            <div className="flex justify-between text-[10px] mb-1">
+                                            <span className="text-gray-500">Transferable Deposit</span>
+                                            <span className="font-bold text-gray-900">$1,200.00</span>
+                                        </div>
+                                        <div className="flex justify-between text-[10px]">
+                                            <span className="text-gray-500">Available Points Offset</span>
+                                            <span className="font-bold text-gray-900">-$25.00</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div className="text-[9px] text-gray-400 text-center italic">
+                                    *This is an estimate. Final terms in contract.
+                                </div>
+                            </div>
+                        )}
+
+                        {/* SCENARIO: PAYMENT */}
+                        {walletView === 'payment' && (
+                            <div className={`bg-white rounded-2xl p-4 shadow-sm border border-gray-100 mb-3 ${highlightCard ? 'highlight-pulse' : 'animate-fade-in'}`}>
+                                    <div className="flex items-center justify-between mb-3 border-b border-gray-100 pb-2">
+                                    <h2 className="text-sm font-bold text-gray-800 flex items-center gap-2">
+                                        <Icons.CreditCard size={14} className="text-green-500"/> Contract Payment (Q1)
+                                    </h2>
+                                    <span className="text-[9px] bg-green-50 text-green-600 px-2 py-0.5 rounded-full font-bold">Action Required</span>
+                                </div>
+
+                                    <div className="space-y-2 mb-4 border-dashed border-gray-100 pt-2">
+                                    <div className="flex justify-between text-[10px]">
+                                        <span className="text-gray-500">Base Rent (3 Months)</span>
+                                        <span>$4,350.00</span>
+                                    </div>
+                                    <div className="flex justify-between text-[10px]">
+                                        <span className="text-gray-500">Deposit Transfer</span>
+                                        <span className="text-gray-900">Covered</span>
+                                    </div>
+                                    <div className="flex justify-between text-[10px]">
+                                        <span className="text-gray-500">Loyalty Discount (3 Mos)</span>
+                                        <span className="text-green-600">-$150.00</span>
+                                    </div>
+                                        <div className="flex justify-between text-[10px]">
+                                        <span className="text-gray-500">Voucher & Points</span>
+                                        <span className="text-green-600">-$25.00</span>
+                                    </div>
+                                    <div className="flex justify-between text-[10px] border-t border-gray-100 pt-2 mt-2">
+                                        <span className="font-bold text-gray-900">Total Due Now</span>
+                                        <span className="font-bold text-gray-900">$4,175.00</span>
+                                    </div>
+                                </div>
+
+                                    <div className="flex gap-2">
+                                    <button 
+                                        onClick={() => onAction('finish_pay')}
+                                        className="flex-1 py-2 bg-black text-white rounded-xl text-[10px] font-bold active:scale-95 transition-transform"
+                                    >
+                                        Pay Now
+                                    </button>
+                                    <button className="px-3 py-2 bg-gray-100 text-gray-600 rounded-xl text-[10px] font-bold border border-gray-200">
+                                        Loan (0%)
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* SCENARIO: INSTALLMENTS */}
+                        {walletView === 'installments' && (
+                                <div className={`bg-white rounded-2xl p-4 shadow-sm border border-gray-100 mb-3 ${highlightCard ? 'highlight-pulse' : 'animate-fade-in'}`}>
+                                <div className="flex items-center justify-between mb-3 border-b border-gray-100 pb-2">
+                                    <h2 className="text-sm font-bold text-gray-800 flex items-center gap-2">
+                                        <Icons.List size={14} className="text-purple-500"/> Upcoming Installments
+                                    </h2>
+                                    <span className="text-[9px] text-gray-400">Quarterly Plan</span>
+                                </div>
+                                <div className="space-y-3">
+                                    {/* Installment 1 */}
+                                    <div className="flex justify-between items-center bg-gray-50 p-2 rounded-lg opacity-50">
+                                        <div>
+                                            <div className="text-[10px] font-bold text-gray-900">Q1 Installment</div>
+                                            <div className="text-[9px] text-gray-500">Nov 01 • Paid</div>
+                                        </div>
+                                        <span className="text-[10px] font-bold text-green-600">$4,175.00</span>
+                                    </div>
+                                    {/* Installment 2 */}
+                                    <div className="flex justify-between items-center bg-white border border-gray-200 p-2 rounded-lg shadow-sm">
+                                        <div>
+                                            <div className="text-[10px] font-bold text-gray-900">Q2 Installment</div>
+                                            <div className="text-[9px] text-red-500">Due Feb 01</div>
+                                        </div>
+                                        <div className="text-right">
+                                            <div className="text-[10px] font-bold text-gray-900">$4,200.00</div>
+                                            <button className="bg-black text-white px-3 py-1 rounded text-[9px] mt-1">Pay</button>
+                                        </div>
+                                    </div>
+                                    {/* Installment 3 */}
+                                    <div className="flex justify-between items-center opacity-60">
+                                        <div>
+                                            <div className="text-[10px] font-bold text-gray-900">Q3 Installment</div>
+                                            <div className="text-[9px] text-gray-500">Due May 01</div>
+                                        </div>
+                                        <div className="text-[10px] font-bold text-gray-900">$4,200.00</div>
+                                    </div>
+                                    {/* Installment 4 */}
+                                    <div className="flex justify-between items-center opacity-60">
+                                        <div>
+                                            <div className="text-[10px] font-bold text-gray-900">Q4 Installment</div>
+                                            <div className="text-[9px] text-gray-500">Due Aug 01</div>
+                                        </div>
+                                        <div className="text-[10px] font-bold text-gray-900">$4,200.00</div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Default Transaction History - Always Visible */}
+                        <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+                                <div className="flex justify-between items-center mb-3">
+                                    <h3 className="text-xs font-bold text-gray-800">Recent Transactions</h3>
+                                    <Icons.MoreHorizontal size={16} className="text-gray-400 cursor-pointer hover:text-black"/>
+                                </div>
+                                <div className="space-y-3">
+                                {/* NEW RENT PAYMENT */}
+                                {showFullHistory && (
+                                    <div className="flex justify-between items-center animate-fade-in">
+                                        <div className="flex items-center gap-2">
+                                            <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center"><Icons.Home size={12}/></div>
+                                            <div>
+                                                <div className="text-[10px] font-bold">Rent Payment (Q1)</div>
+                                                <div className="text-[8px] text-gray-400">Today</div>
+                                            </div>
+                                        </div>
+                                        <span className="text-[10px] font-bold text-gray-900">-$4,175.00</span>
+                                    </div>
+                                )}
+                                {showFullHistory && (
+                                    <div className="flex justify-between items-center animate-fade-in">
+                                        <div className="flex items-center gap-2">
+                                            <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center text-green-600"><Icons.DollarSign size={12}/></div>
+                                            <div>
+                                                <div className="text-[10px] font-bold">Deposit Carryover</div>
+                                                <div className="text-[8px] text-gray-400">Credit</div>
+                                            </div>
+                                        </div>
+                                        <span className="text-[10px] font-bold text-green-600">+$1,200.00</span>
+                                    </div>
+                                )}
+                                {showFullHistory && (
+                                    <div className="flex justify-between items-center animate-fade-in">
+                                        <div className="flex items-center gap-2">
+                                            <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center text-green-600"><Icons.Tag size={12}/></div>
+                                            <div>
+                                                <div className="text-[10px] font-bold">Voucher Redeem</div>
+                                                <div className="text-[8px] text-gray-400">Promo</div>
+                                            </div>
+                                        </div>
+                                        <span className="text-[10px] font-bold text-green-600">+$25.00</span>
+                                    </div>
+                                )}
+                                {showFullHistory && (
+                                    <div className="flex justify-between items-center animate-fade-in">
+                                        <div className="flex items-center gap-2">
+                                            <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center text-green-600"><Icons.UserCheck size={12}/></div>
+                                            <div>
+                                                <div className="text-[10px] font-bold">Loyalty Credit (Q1)</div>
+                                                <div className="text-[8px] text-gray-400">Applied</div>
+                                            </div>
+                                        </div>
+                                        <span className="text-[10px] font-bold text-green-600">+$150.00</span>
+                                    </div>
+                                )}
+
+                                {/* OLD RENT - Always visible as history */}
+                                <div className="flex justify-between items-center">
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center"><Icons.Home size={12}/></div>
+                                        <div>
+                                            <div className="text-[10px] font-bold">Sep Rent</div>
+                                            <div className="text-[8px] text-gray-400">Successful</div>
+                                        </div>
+                                    </div>
+                                    <span className="text-[10px] font-bold text-gray-900">-$1,200.00</span>
+                                </div>
+                                </div>
+                        </div>
+
+                    </div>
+
+                    <BottomNav active="wallet" />
+                </div>
+            );
+        };
+
+        const Screen4_AdminDashboard = ({ onGenerate, scenario }) => {
+            const [view, setView] = useState('landlord'); 
+            const [tab, setTab] = useState('request'); 
+            const [selectedItem, setSelectedItem] = useState(null); 
+            const [generated, setGenerated] = useState({ landlord: false, tenant: false });
+
+            useEffect(() => {
+                if (view === 'landlord') setSelectedItem('linda');
+                else setSelectedItem('emily');
+            }, [view]);
+
+            // Reset generated state when scenario changes back to initiated
+            useEffect(() => {
+                if (scenario === 'request_initiated') {
+                    setGenerated({ landlord: false, tenant: false });
+                } else {
+                    setGenerated({ landlord: true, tenant: true });
+                }
+            }, [scenario]);
+
+            const handleGenerate = () => {
+                setGenerated(prev => ({ ...prev, [view]: true }));
+                if (onGenerate) onGenerate(view);
+            };
+
+            const renderButtonContent = () => {
+                if (generated[view] || scenario === 'request_completed') {
+                    return (
+                        <React.Fragment>
+                            <Icons.Check size={12} /> Contract Sent
+                        </React.Fragment>
+                    );
+                }
+                return (
+                        <React.Fragment>
+                            <Icons.FileText size={12} /> Generate Renewal Contract
+                        </React.Fragment>
+                );
+            }
+
+            const landlordList = [
+                { 
+                    id: 'linda', 
+                    name: 'Linda', 
+                    property: 'The Wilshire #101', 
+                    status: scenario === 'request_initiated' ? 'Renewal Requested' : 'Active Lease', 
+                    priority: scenario === 'request_initiated' ? 'high' : 'normal', 
+                    time: scenario === 'request_initiated' ? '2h ago' : 'Just now', 
+                    img: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=200' 
+                },
+                { id: 'james', name: 'James', property: 'Oakwood Apts #4', status: 'Termination', priority: 'normal', time: '4h ago', img: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?q=80&w=200' },
+                { id: 'robert', name: 'Robert', property: 'Highland Park #202', status: 'New Contract', priority: 'normal', time: '6h ago', img: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?q=80&w=200' },
+                { id: 'patricia', name: 'Patricia', property: 'Venice Beach House', status: 'Maintenance', priority: 'low', time: '1d ago', img: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=200' },
+            ];
+
+            const tenantList = [
+                { 
+                    id: 'emily', 
+                    name: 'Emily', 
+                    property: 'The Wilshire #101', 
+                    status: scenario === 'request_initiated' ? 'Lease Renewal' : 'Active Lease', 
+                    priority: scenario === 'request_initiated' ? 'high' : 'normal', 
+                    time: scenario === 'request_initiated' ? '1h ago' : 'Just now', 
+                    img: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?q=80&w=200' 
+                },
+                { id: 'sarah', name: 'Sarah', property: 'Downtown Loft #5B', status: 'Application', priority: 'normal', time: '3h ago', img: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?q=80&w=200' },
+                { id: 'david', name: 'David', property: 'Silver Lake Studio', status: 'Lease Break', priority: 'high', time: '5h ago', img: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=200' },
+                { id: 'jennifer', name: 'Jennifer', property: 'Echo Park #A', status: 'Transfer', priority: 'normal', time: '1d ago', img: 'https://images.unsplash.com/photo-1554151228-14d9def656ec?q=80&w=200' },
+            ];
+
+            const currentList = view === 'landlord' ? landlordList : tenantList;
+
+            const renderLedgerStatus = (status) => {
+                if (status.includes('Pending') || status.includes('❌')) {
+                    return <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-bold bg-slate-100 text-slate-500 border border-slate-200"><Icons.Clock size={8}/> Pending</span>;
+                }
+                if (status.includes('Partially') || status.includes('🔄')) {
+                    return <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-50 text-amber-600 border border-amber-100"><Icons.PieChart size={8}/> Partial</span>;
+                }
+                if (status.includes('Reconciled') || status.includes('✅') || status.includes('Paid')) {
+                    return <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-bold bg-green-50 text-green-600 border border-green-100"><Icons.Check size={8}/> Reconciled</span>;
+                }
+                if (status.includes('Rollover') || status.includes('Cleared')) {
+                    return <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-bold bg-blue-50 text-blue-600 border border-blue-100"><Icons.Check size={8}/> Cleared</span>;
+                }
+                return <span className="text-[9px]">{status}</span>;
+            };
+
+            const renderContent = () => {
+                const isCompleted = scenario === 'request_completed';
+
+                if (tab === 'request') {
+                    if (selectedItem === 'linda') {
+                        return (
+                            <div className="p-6 bg-white rounded-xl shadow-sm border border-slate-200">
+                                    <div className="flex gap-6 mb-6">
+                                    <div className="w-1/3">
+                                        <div className="aspect-video bg-slate-100 rounded-lg mb-3 relative overflow-hidden">
+                                            <img src="https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?q=80&w=400" className="w-full h-full object-cover" alt="Property" />
+                                        </div>
+                                        <h3 className="font-bold text-sm">The Wilshire</h3>
+                                        <p className="text-xs text-slate-500">Unit 101 • Commercial Contract</p>
+                                    </div>
+                                    <div className="w-2/3 grid grid-cols-2 gap-4">
+                                        <div className="p-3 bg-slate-50 rounded-lg">
+                                            <div className="text-[10px] text-slate-400 uppercase">Current Pricing</div>
+                                            <div className="text-sm font-bold text-slate-500 line-through">$1,200</div>
+                                        </div>
+                                        <div className="p-3 bg-blue-50 rounded-lg border border-blue-100">
+                                            <div className="text-[10px] text-blue-400 uppercase">New Proposal</div>
+                                            <div className="text-sm font-bold text-blue-700">$1,450</div>
+                                        </div>
+                                        <div className="p-3 bg-slate-50 rounded-lg">
+                                            <div className="text-[10px] text-slate-400 uppercase">Credit Score</div>
+                                            <div className="text-sm font-bold">98/100</div>
+                                        </div>
+                                        <div className="p-3 bg-slate-50 rounded-lg">
+                                            <div className="text-[10px] text-slate-400 uppercase">Commission</div>
+                                            <div className="text-sm font-bold">10%</div>
+                                        </div>
+                                        <div className="p-3 bg-slate-50 rounded-lg">
+                                            <div className="text-[10px] text-slate-400 uppercase">Cooperation</div>
+                                            <div className="text-sm font-bold">5 Years</div>
+                                        </div>
+                                        <div className="p-3 bg-slate-50 rounded-lg">
+                                            <div className="text-[10px] text-slate-400 uppercase">Rating</div>
+                                            <div className="text-sm font-bold">4.8/5.0</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className={`flex items-center justify-between p-3 rounded-lg border mb-6 transition-colors ${isCompleted ? 'bg-green-50 border-green-100' : 'bg-red-50 border-red-100'}`}>
+                                    <div className="flex items-center gap-2">
+                                        <Icons.Lock size={14} className={isCompleted ? 'text-green-500' : 'text-red-500'}/>
+                                        <span className={`text-xs font-bold ${isCompleted ? 'text-green-700' : 'text-red-700'}`}>
+                                            {isCompleted ? 'Contract Active & Assets Unlocked' : 'Wallet Assets Frozen'}
+                                        </span>
+                                    </div>
+                                    <span className={`text-[10px] ${isCompleted ? 'text-green-500' : 'text-red-500'}`}>
+                                        {isCompleted ? 'Renewal Finalized' : 'Awaiting Renewal Contract'}
+                                    </span>
+                                </div>
+                                <div className="border-t border-slate-100 pt-4 flex justify-end">
+                                    <button onClick={handleGenerate} disabled={generated.landlord || isCompleted} className={`px-4 py-2 rounded-lg text-xs font-bold flex items-center gap-2 transition-all ${generated.landlord || isCompleted ? 'bg-green-100 text-green-700 cursor-default' : 'bg-black text-white hover:bg-slate-800'}`}>
+                                        {renderButtonContent()}
+                                    </button>
+                                </div>
+                            </div>
+                        );
+                    } else if (selectedItem === 'emily') {
+                        return (
+                                <div className="p-6 bg-white rounded-xl shadow-sm border border-slate-200">
+                                <div className="flex justify-between items-start mb-6">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-10 h-10 rounded-full bg-indigo-100 overflow-hidden border border-indigo-50">
+                                            <img src="https://images.unsplash.com/photo-1438761681033-6461ffad8d80?q=80&w=200" className="w-full h-full object-cover" alt="Emily" />
+                                        </div>
+                                        <div>
+                                            <h3 className="font-bold text-sm">Emily</h3>
+                                            <p className="text-xs text-slate-500">The Wilshire • Unit 101</p>
+                                        </div>
+                                    </div>
+                                    <div className="text-right">
+                                        <div className="text-xs font-bold">1 Year Term</div>
+                                        <div className="text-[10px] text-slate-400">Nov 2024 - Oct 2025</div>
+                                    </div>
+                                </div>
+                                <div className="grid grid-cols-3 gap-4 mb-6">
+                                    <div className="p-3 bg-slate-50 rounded-lg">
+                                        <div className="text-[10px] text-slate-400 uppercase mb-1">Pricing History</div>
+                                        <div className="flex justify-between items-center">
+                                            <span className="text-xs text-slate-500 line-through">$1,200</span>
+                                            <Icons.ArrowRight size={10} className="text-slate-300"/>
+                                            <span className="text-xs font-bold">$1,450</span>
+                                        </div>
+                                    </div>
+                                    <div className="p-3 bg-green-50 rounded-lg border border-green-100">
+                                        <div className="text-[10px] text-green-600 uppercase mb-1">Incentives</div>
+                                        <div className="flex justify-between items-center">
+                                            <span className="text-xs text-green-700">Loyalty</span>
+                                            <span className="text-xs font-bold text-green-700">-$50/mo</span>
+                                        </div>
+                                    </div>
+                                     <div className="p-3 bg-blue-50 rounded-lg border border-blue-100">
+                                        <div className="text-[10px] text-blue-600 uppercase mb-1">Fin. Services</div>
+                                        <div className="text-xs font-bold text-blue-700">Loan Eligible</div>
+                                    </div>
+                                    <div className="p-3 bg-slate-50 rounded-lg">
+                                        <div className="text-[10px] text-slate-400 uppercase mb-1">Platform</div>
+                                        <div className="flex justify-between items-center">
+                                            <span className="text-xs text-slate-500">Service Fee</span>
+                                            <span className="text-xs font-bold">$145</span>
+                                        </div>
+                                    </div>
+                                    <div className="p-3 bg-slate-50 rounded-lg">
+                                        <div className="text-[10px] text-slate-400 uppercase mb-1">History</div>
+                                        <div className="text-xs font-bold text-green-600">100% On-Time</div>
+                                    </div>
+                                    <div className="p-3 bg-slate-50 rounded-lg">
+                                        <div className="text-[10px] text-slate-400 uppercase mb-1">Credit Score</div>
+                                        <div className="text-xs font-bold">750</div>
+                                    </div>
+                                </div>
+                                <div className="border-t border-slate-100 pt-4 flex justify-end">
+                                    <button onClick={handleGenerate} disabled={generated.tenant || isCompleted} className={`px-4 py-2 rounded-lg text-xs font-bold flex items-center gap-2 transition-all ${generated.tenant || isCompleted ? 'bg-green-100 text-green-700 cursor-default' : 'bg-black text-white hover:bg-slate-800'}`}>
+                                        {renderButtonContent()}
+                                    </button>
+                                </div>
+                            </div>
+                        );
+                    }
+                        return <div className="text-center text-slate-400 mt-10">Select a high priority item</div>;
+                }
+
+                if (tab === 'profile') {
+                        if (selectedItem === 'linda') {
+                        return (
+                                <div className="space-y-4">
+                                <div className="bg-white p-4 rounded-xl border border-slate-200">
+                                    <div className="flex justify-between mb-4"><h3 className="font-bold text-sm">Property Portfolio</h3><span className="text-xs text-slate-500">3 Total Units</span></div>
+                                    <div className="space-y-3">
+                                        <div className={`flex items-center justify-between p-3 rounded-lg border transition-colors ${isCompleted ? 'bg-white border-slate-100' : 'bg-slate-50 border-slate-100'}`}>
+                                            <div className="flex items-center gap-3"><div className="w-8 h-8 bg-white rounded flex items-center justify-center text-slate-400"><Icons.Home size={14}/></div><div><div className="text-xs font-bold">The Wilshire #101</div><div className={`text-[10px] ${isCompleted ? 'text-green-600' : 'text-amber-600'}`}>{isCompleted ? 'Active Lease' : 'Renewal Pending'}</div></div></div>
+                                            <div className="text-right"><div className="text-xs font-bold">{isCompleted ? '$1,450' : '$1,200 -> $1,450'}</div><div className="text-[9px] text-slate-400">Contract: {isCompleted ? '2024-2025' : '2023-2024'}</div></div>
+                                        </div>
+                                        <div className="flex items-center justify-between p-3 bg-white rounded-lg border border-slate-100">
+                                            <div className="flex items-center gap-3"><div className="w-8 h-8 bg-slate-50 rounded flex items-center justify-center text-slate-400"><Icons.Home size={14}/></div><div><div className="text-xs font-bold">Sunset Lofts #204</div><div className="text-[10px] text-green-600">Active Lease</div></div></div>
+                                            <div className="text-right"><div className="text-xs font-bold">$1,800</div><div className="text-[9px] text-slate-400">Ends: Mar 2025</div></div>
+                                        </div>
+                                        <div className="flex items-center justify-between p-3 bg-white rounded-lg border border-slate-100">
+                                            <div className="flex items-center gap-3"><div className="w-8 h-8 bg-slate-50 rounded flex items-center justify-center text-slate-400"><Icons.Home size={14}/></div><div><div className="text-xs font-bold">Melrose Place #305</div><div className="text-[10px] text-green-600">Active Lease</div></div></div>
+                                            <div className="text-right"><div className="text-xs font-bold">$2,400</div><div className="text-[9px] text-slate-400">Ends: Jun 2025</div></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        );
+                        }
+                        if (selectedItem === 'emily') {
+                            return (
+                                <div className="space-y-4">
+                                <div className="bg-white p-4 rounded-xl border border-slate-200">
+                                    <div className="flex justify-between mb-4"><h3 className="font-bold text-sm">Rental History</h3><span className="text-xs text-slate-500">2 Records</span></div>
+                                    <div className="space-y-3">
+                                        <div className={`flex items-center justify-between p-3 rounded-lg border transition-colors ${isCompleted ? 'bg-white border-slate-100' : 'bg-slate-50 border-slate-100'}`}>
+                                            <div className="flex items-center gap-3"><div className="w-8 h-8 bg-white rounded flex items-center justify-center text-slate-400"><Icons.Home size={14}/></div><div><div className="text-xs font-bold">The Wilshire #101</div><div className={`text-[10px] ${isCompleted ? 'text-green-600' : 'text-amber-600'}`}>{isCompleted ? 'Active Lease' : 'Renewing'}</div></div></div>
+                                            <div className="text-right"><div className="text-xs font-bold">{isCompleted ? '$1,450' : '$1,200'}</div><div className="text-[9px] text-slate-400">{isCompleted ? '2024-2025' : '2023-2024'}</div></div>
+                                        </div>
+                                            <div className="flex items-center justify-between p-3 bg-white rounded-lg border border-slate-100 opacity-60">
+                                            <div className="flex items-center gap-3"><div className="w-8 h-8 bg-slate-50 rounded flex items-center justify-center text-slate-400"><Icons.Home size={14}/></div><div><div className="text-xs font-bold">Sunset Blvd #12</div><div className="text-[10px] text-slate-500">Expired</div></div></div>
+                                            <div className="text-right"><div className="text-xs font-bold">$1,100</div><div className="text-[9px] text-slate-400">2021-2022</div></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            );
+                        }
+                }
+
+                if (tab === 'ledger') {
+                    if (selectedItem === 'linda') {
+                        return (
+                            <div className="space-y-6 animate-fade-in">
+                                {/* Summary Cards */}
+                                <div className="flex gap-4 mb-2">
+                                    <div className="flex-1 bg-white p-3 rounded-xl border border-slate-200 shadow-sm relative overflow-hidden">
+                                        <div className="absolute right-0 top-0 p-3 opacity-5"><Icons.Alert size={60} /></div>
+                                        <div className="text-[10px] text-slate-400 uppercase tracking-wider font-bold mb-1">Pending Payables</div>
+                                        <div className={`text-xl font-bold ${isCompleted ? 'text-green-600' : 'text-slate-800'}`}>{isCompleted ? '$0.00' : '-$22,000.00'}</div>
+                                        <div className={`text-[9px] mt-1 font-medium flex items-center gap-1 ${isCompleted ? 'text-green-500' : 'text-red-500'}`}>
+                                            {isCompleted ? <React.Fragment><Icons.Check size={10}/> All Cleared</React.Fragment> : <React.Fragment><Icons.Alert size={10}/> Action Required</React.Fragment>}
+                                        </div>
+                                    </div>
+                                    <div className="flex-1 bg-white p-3 rounded-xl border border-slate-200 shadow-sm relative overflow-hidden">
+                                        <div className="absolute right-0 top-0 p-3 opacity-5"><Icons.DollarSign size={60} /></div>
+                                        <div className="text-[10px] text-slate-400 uppercase tracking-wider font-bold mb-1">Uncollected Comm.</div>
+                                        <div className={`text-xl font-bold ${isCompleted ? 'text-slate-400' : 'text-slate-800'}`}>{isCompleted ? '$0.00' : '+$435.00'}</div>
+                                        <div className={`text-[9px] mt-1 font-medium flex items-center gap-1 ${isCompleted ? 'text-slate-400' : 'text-amber-500'}`}>
+                                            {isCompleted ? <React.Fragment><Icons.Check size={10}/> Processed</React.Fragment> : <React.Fragment><Icons.Clock size={10}/> Awaiting Clearing</React.Fragment>}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Property 1: The Wilshire (New Contract - 1450/mo) */}
+                                <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
+                                    <div className="bg-slate-50 px-4 py-3 border-b border-slate-200 flex justify-between items-center">
+                                        <div className="flex items-center gap-2">
+                                            <div className="p-1 bg-white rounded border border-slate-200 shadow-sm"><Icons.Building size={12} className="text-slate-500"/></div>
+                                            <div>
+                                                <div className="font-bold text-xs text-slate-800">The Wilshire</div>
+                                                <div className="text-[9px] text-slate-400 font-mono">HT202501A (New)</div>
+                                            </div>
+                                        </div>
+                                        <span className="text-[9px] px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full font-bold border border-blue-200 shadow-sm">Signed</span>
+                                    </div>
+                                    <table className="w-full text-left">
+                                        <thead className="bg-white border-b border-slate-100">
+                                            <tr>
+                                                <th className="px-4 py-2 text-[9px] font-bold text-slate-400 uppercase tracking-wider">Transaction Type</th>
+                                                <th className="px-4 py-2 text-[9px] font-bold text-slate-400 uppercase tracking-wider text-right">Billing</th>
+                                                <th className="px-4 py-2 text-[9px] font-bold text-slate-400 uppercase tracking-wider text-right">Executed</th>
+                                                <th className="px-4 py-2 text-[9px] font-bold text-slate-400 uppercase tracking-wider text-right">Status</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-slate-50">
+                                            <tr className="hover:bg-slate-50/50">
+                                                <td className="px-4 py-2.5 text-[10px] font-bold text-slate-700">Commission (Receivable)</td>
+                                                <td className="px-4 py-2.5 text-[10px] font-mono font-medium text-slate-800 text-right">+435.00</td>
+                                                <td className={`px-4 py-2.5 text-[10px] font-mono text-right ${isCompleted ? 'text-slate-800' : 'text-slate-400'}`}>{isCompleted ? '+435.00' : '+0.00'}</td>
+                                                <td className="px-4 py-2.5 text-right">{renderLedgerStatus(isCompleted ? '✅ Reconciled' : '❌ Pending')}</td>
+                                            </tr>
+                                            <tr className="hover:bg-slate-50/50">
+                                                <td className="px-4 py-2.5 text-[10px] font-bold text-slate-700">Deposit (Payable)</td>
+                                                <td className="px-4 py-2.5 text-[10px] font-mono font-medium text-slate-800 text-right">-1,450.00</td>
+                                                <td className={`px-4 py-2.5 text-[10px] font-mono text-right ${isCompleted ? 'text-slate-800' : 'text-slate-400'}`}>{isCompleted ? '-1,450.00' : '-0.00'}</td>
+                                                <td className="px-4 py-2.5 text-right">{renderLedgerStatus(isCompleted ? '✅ Reconciled' : '❌ Pending')}</td>
+                                            </tr>
+                                            <tr className="hover:bg-slate-50/50">
+                                                <td className="px-4 py-2.5 text-[10px] font-bold text-slate-700">Rent 1/4 (Payable)</td>
+                                                <td className="px-4 py-2.5 text-[10px] font-mono font-medium text-slate-800 text-right">-4,350.00</td>
+                                                <td className={`px-4 py-2.5 text-[10px] font-mono text-right ${isCompleted ? 'text-slate-800' : 'text-slate-400'}`}>{isCompleted ? '-4,350.00' : '-0.00'}</td>
+                                                <td className="px-4 py-2.5 text-right">{renderLedgerStatus(isCompleted ? '✅ Reconciled' : '❌ Pending')}</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+
+                                {/* Property 1: The Wilshire (Old Contract - 1200/mo) */}
+                                <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm opacity-90">
+                                    <div className="bg-slate-50 px-4 py-3 border-b border-slate-200 flex justify-between items-center">
+                                        <div className="flex items-center gap-2">
+                                            <div className="p-1 bg-white rounded border border-slate-200 shadow-sm"><Icons.Archive size={12} className="text-slate-400"/></div>
+                                            <div>
+                                                <div className="font-bold text-xs text-slate-600">The Wilshire</div>
+                                                <div className="text-[9px] text-slate-400 font-mono">HT202503C (Old)</div>
+                                            </div>
+                                        </div>
+                                        <span className={`text-[9px] px-2 py-0.5 rounded-full font-bold border shadow-sm ${isCompleted ? 'bg-slate-100 text-slate-500 border-slate-200' : 'bg-amber-100 text-amber-700 border-amber-200'}`}>{isCompleted ? 'Archived' : 'Expiring'}</span>
+                                    </div>
+                                    <table className="w-full text-left">
+                                        <thead className="bg-white border-b border-slate-100">
+                                            <tr>
+                                                <th className="px-4 py-2 text-[9px] font-bold text-slate-400 uppercase tracking-wider">Transaction Type</th>
+                                                <th className="px-4 py-2 text-[9px] font-bold text-slate-400 uppercase tracking-wider text-right">Billing</th>
+                                                <th className="px-4 py-2 text-[9px] font-bold text-slate-400 uppercase tracking-wider text-right">Executed</th>
+                                                <th className="px-4 py-2 text-[9px] font-bold text-slate-400 uppercase tracking-wider text-right">Status</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-slate-50">
+                                            <tr className="hover:bg-slate-50/50">
+                                                <td className="px-4 py-2.5 text-[10px] font-bold text-slate-700">Rent 4/4 (Payable)</td>
+                                                <td className="px-4 py-2.5 text-[10px] font-mono font-medium text-slate-800 text-right">-3,600.00</td>
+                                                <td className={`px-4 py-2.5 text-[10px] font-mono text-right ${isCompleted ? 'text-slate-800' : 'text-slate-400'}`}>{isCompleted ? '-3,600.00' : '-0.00'}</td>
+                                                <td className="px-4 py-2.5 text-right">{renderLedgerStatus(isCompleted ? '✅ Reconciled' : '❌ Pending')}</td>
+                                            </tr>
+                                            <tr className="hover:bg-slate-50/50">
+                                                <td className="px-4 py-2.5 text-[10px] font-medium text-slate-500">Rent 3/4 (Payable)</td>
+                                                <td className="px-4 py-2.5 text-[10px] font-mono text-slate-400 text-right">-3,600.00</td>
+                                                <td className="px-4 py-2.5 text-[10px] font-mono text-slate-500 text-right">-3,600.00</td>
+                                                <td className="px-4 py-2.5 text-right">{renderLedgerStatus('✅ Reconciled')}</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+
+                                {/* Property 2: Sunset Lofts (1800/mo) */}
+                                <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
+                                    <div className="bg-slate-50 px-4 py-3 border-b border-slate-200 flex justify-between items-center">
+                                        <div className="flex items-center gap-2">
+                                            <div className="p-1 bg-white rounded border border-slate-200 shadow-sm"><Icons.Building size={12} className="text-slate-500"/></div>
+                                            <div>
+                                                <div className="font-bold text-xs text-slate-800">Sunset Lofts</div>
+                                                <div className="text-[9px] text-slate-400 font-mono">HT202502B</div>
+                                            </div>
+                                        </div>
+                                        <span className="text-[9px] px-2 py-0.5 bg-green-100 text-green-700 rounded-full font-bold border border-green-200 shadow-sm">Active</span>
+                                    </div>
+                                    <table className="w-full text-left">
+                                        <tbody className="divide-y divide-slate-50">
+                                            <tr className="hover:bg-slate-50/50">
+                                                <td className="px-4 py-2.5 text-[10px] font-bold text-slate-700 w-1/3">Commission (Annual)</td>
+                                                <td className="px-4 py-2.5 text-[10px] font-mono font-medium text-slate-800 text-right">+2,160.00</td>
+                                                <td className="px-4 py-2.5 text-[10px] font-mono text-slate-600 text-right">+2,160.00</td>
+                                                <td className="px-4 py-2.5 text-right">{renderLedgerStatus('✅ Reconciled')}</td>
+                                            </tr>
+                                            <tr className="hover:bg-slate-50/50">
+                                                <td className="px-4 py-2.5 text-[10px] font-bold text-slate-700">Rent 3/4 (Payable)</td>
+                                                <td className="px-4 py-2.5 text-[10px] font-mono font-medium text-slate-800 text-right">-5,400.00</td>
+                                                <td className={`px-4 py-2.5 text-[10px] font-mono text-right ${isCompleted ? 'text-slate-600' : 'text-slate-400'}`}>{isCompleted ? '-5,400.00' : '-0.00'}</td>
+                                                <td className="px-4 py-2.5 text-right">{renderLedgerStatus('✅ Reconciled')}</td>
+                                            </tr>
+                                            <tr className="hover:bg-slate-50/50">
+                                                <td className="px-4 py-2.5 text-[10px] font-bold text-slate-700">Rent 2/4 (Payable)</td>
+                                                <td className="px-4 py-2.5 text-[10px] font-mono font-medium text-slate-800 text-right">-5,400.00</td>
+                                                <td className="px-4 py-2.5 text-[10px] font-mono text-slate-600 text-right">-5,400.00</td>
+                                                <td className="px-4 py-2.5 text-right">{renderLedgerStatus('✅ Reconciled')}</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+
+                                {/* Property 3: Melrose Place (2400/mo) */}
+                                <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
+                                    <div className="bg-slate-50 px-4 py-3 border-b border-slate-200 flex justify-between items-center">
+                                        <div className="flex items-center gap-2">
+                                            <div className="p-1 bg-white rounded border border-slate-200 shadow-sm"><Icons.Building size={12} className="text-slate-500"/></div>
+                                            <div>
+                                                <div className="font-bold text-xs text-slate-800">Melrose Place</div>
+                                                <div className="text-[9px] text-slate-400 font-mono">HT202504D</div>
+                                            </div>
+                                        </div>
+                                        <span className="text-[9px] px-2 py-0.5 bg-green-100 text-green-700 rounded-full font-bold border border-green-200 shadow-sm">Active</span>
+                                    </div>
+                                    <table className="w-full text-left">
+                                        <tbody className="divide-y divide-slate-50">
+                                            <tr className="hover:bg-slate-50/50">
+                                                <td className="px-4 py-2.5 text-[10px] font-bold text-slate-700 w-1/3">Commission (Annual)</td>
+                                                <td className="px-4 py-2.5 text-[10px] font-mono font-medium text-slate-800 text-right">+2,880.00</td>
+                                                <td className="px-4 py-2.5 text-[10px] font-mono text-slate-600 text-right">+2,880.00</td>
+                                                <td className="px-4 py-2.5 text-right">{renderLedgerStatus('✅ Reconciled')}</td>
+                                            </tr>
+                                            <tr className="hover:bg-slate-50/50">
+                                                <td className="px-4 py-2.5 text-[10px] font-bold text-slate-700">Rent 4/4 (Payable)</td>
+                                                <td className="px-4 py-2.5 text-[10px] font-mono font-medium text-slate-800 text-right">-7,200.00</td>
+                                                <td className={`px-4 py-2.5 text-[10px] font-mono text-right ${isCompleted ? 'text-slate-600' : 'text-slate-400'}`}>{isCompleted ? '-7,200.00' : '-0.00'}</td>
+                                                <td className="px-4 py-2.5 text-right">{renderLedgerStatus('✅ Reconciled')}</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        );
+                    } else if (selectedItem === 'emily') {
+                            return (
+                                <div className="space-y-6 animate-fade-in">
+                                {/* Summary Cards */}
+                                <div className="flex gap-4 mb-2">
+                                    <div className="flex-1 bg-white p-3 rounded-xl border border-slate-200 shadow-sm relative overflow-hidden">
+                                        <div className="absolute right-0 top-0 p-3 opacity-5"><Icons.FileText size={60} /></div>
+                                        <div className="text-[10px] text-slate-400 uppercase tracking-wider font-bold mb-1">Total Receivables</div>
+                                        <div className={`text-xl font-bold ${isCompleted ? 'text-slate-400' : 'text-slate-800'}`}>{isCompleted ? '$0.00' : '+$4,350.00'}</div>
+                                        <div className={`text-[9px] mt-1 font-medium flex items-center gap-1 ${isCompleted ? 'text-slate-400' : 'text-blue-500'}`}>
+                                            {isCompleted ? <React.Fragment><Icons.Check size={10}/> Paid</React.Fragment> : <React.Fragment><Icons.Clock size={10}/> Awaiting Payment</React.Fragment>}
+                                        </div>
+                                    </div>
+                                    <div className="flex-1 bg-white p-3 rounded-xl border border-slate-200 shadow-sm relative overflow-hidden">
+                                        <div className="absolute right-0 top-0 p-3 opacity-5"><Icons.Lock size={60} /></div>
+                                        <div className="text-[10px] text-slate-400 uppercase tracking-wider font-bold mb-1">Held Deposits</div>
+                                        <div className="text-xl font-bold text-slate-800">-$1,200.00</div>
+                                        <div className={`text-[9px] mt-1 font-medium flex items-center gap-1 ${isCompleted ? 'text-blue-500' : 'text-amber-500'}`}>
+                                            {isCompleted ? <React.Fragment><Icons.Check size={10}/> Rollover Done</React.Fragment> : <React.Fragment><Icons.RefreshCw size={10}/> Rollover Pending</React.Fragment>}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Property 1: The Wilshire (New Contract - 1450/mo) */}
+                                <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
+                                    <div className="bg-slate-50 px-4 py-3 border-b border-slate-200 flex justify-between items-center">
+                                        <div className="flex items-center gap-2">
+                                            <div className="p-1 bg-white rounded border border-slate-200 shadow-sm"><Icons.Building size={12} className="text-slate-500"/></div>
+                                            <div>
+                                                <div className="font-bold text-xs text-slate-800">The Wilshire</div>
+                                                <div className="text-[9px] text-slate-400 font-mono">TN202501A (New)</div>
+                                            </div>
+                                        </div>
+                                        <span className="text-[9px] px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full font-bold border border-blue-200 shadow-sm">Lease Renewal</span>
+                                    </div>
+                                    <table className="w-full text-left">
+                                        <thead className="bg-white border-b border-slate-100">
+                                            <tr>
+                                                <th className="px-4 py-2 text-[9px] font-bold text-slate-400 uppercase tracking-wider">Transaction Type</th>
+                                                <th className="px-4 py-2 text-[9px] font-bold text-slate-400 uppercase tracking-wider text-right">Billing</th>
+                                                <th className="px-4 py-2 text-[9px] font-bold text-slate-400 uppercase tracking-wider text-right">Executed</th>
+                                                <th className="px-4 py-2 text-[9px] font-bold text-slate-400 uppercase tracking-wider text-right">Status</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-slate-50">
+                                            <tr className="hover:bg-slate-50/50">
+                                                <td className="px-4 py-2.5 text-[10px] font-bold text-slate-700">Platform Fee (Receivable)</td>
+                                                <td className="px-4 py-2.5 text-[10px] font-mono font-medium text-slate-800 text-right">+145.00</td>
+                                                <td className={`px-4 py-2.5 text-[10px] font-mono text-right ${isCompleted ? 'text-slate-800' : 'text-slate-400'}`}>{isCompleted ? '+145.00' : '+0.00'}</td>
+                                                <td className="px-4 py-2.5 text-right">{renderLedgerStatus(isCompleted ? '✅ Paid' : '❌ Pending')}</td>
+                                            </tr>
+                                            <tr className="hover:bg-slate-50/50">
+                                                <td className="px-4 py-2.5 text-[10px] font-bold text-slate-700">Deposit (Receivable)</td>
+                                                <td className="px-4 py-2.5 text-[10px] font-mono font-medium text-slate-800 text-right">+1,200.00</td>
+                                                <td className={`px-4 py-2.5 text-[10px] font-mono text-right ${isCompleted ? 'text-slate-800' : 'text-slate-400'}`}>{isCompleted ? '+1,200.00' : '+0.00'}</td>
+                                                <td className="px-4 py-2.5 text-right">{renderLedgerStatus(isCompleted ? 'Cleared' : '❌ Pending')}</td>
+                                            </tr>
+                                            <tr className="hover:bg-slate-50/50">
+                                                <td className="px-4 py-2.5 text-[10px] font-bold text-slate-700">Rent Q1 (Receivable)</td>
+                                                <td className="px-4 py-2.5 text-[10px] font-mono font-medium text-slate-800 text-right">+4,350.00</td>
+                                                <td className={`px-4 py-2.5 text-[10px] font-mono text-right ${isCompleted ? 'text-slate-800' : 'text-slate-400'}`}>{isCompleted ? '+4,175.00' : '+0.00'}</td>
+                                                <td className="px-4 py-2.5 text-right">{renderLedgerStatus(isCompleted ? '✅ Paid' : '❌ Pending')}</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+
+                                {/* Property 1: The Wilshire (Old Contract - 1200/mo) */}
+                                <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm opacity-90">
+                                    <div className="bg-slate-50 px-4 py-3 border-b border-slate-200 flex justify-between items-center">
+                                        <div className="flex items-center gap-2">
+                                            <div className="p-1 bg-white rounded border border-slate-200 shadow-sm"><Icons.Archive size={12} className="text-slate-400"/></div>
+                                            <div>
+                                                <div className="font-bold text-xs text-slate-600">The Wilshire</div>
+                                                <div className="text-[9px] text-slate-400 font-mono">TN202401A (Old)</div>
+                                            </div>
+                                        </div>
+                                        <span className={`text-[9px] px-2 py-0.5 rounded-full font-bold border shadow-sm ${isCompleted ? 'bg-slate-100 text-slate-500 border-slate-200' : 'bg-amber-100 text-amber-700 border-amber-200'}`}>{isCompleted ? 'Archived' : 'Expiring'}</span>
+                                    </div>
+                                    <table className="w-full text-left">
+                                        <thead className="bg-white border-b border-slate-100">
+                                            <tr>
+                                                <th className="px-4 py-2 text-[9px] font-bold text-slate-400 uppercase tracking-wider">Transaction Type</th>
+                                                <th className="px-4 py-2 text-[9px] font-bold text-slate-400 uppercase tracking-wider text-right">Billing</th>
+                                                <th className="px-4 py-2 text-[9px] font-bold text-slate-400 uppercase tracking-wider text-right">Executed</th>
+                                                <th className="px-4 py-2 text-[9px] font-bold text-slate-400 uppercase tracking-wider text-right">Status</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-slate-50">
+                                            <tr className="hover:bg-slate-50/50">
+                                                <td className="px-4 py-2.5 text-[10px] font-bold text-slate-700">Deposit (Payable)</td>
+                                                <td className="px-4 py-2.5 text-[10px] font-mono font-medium text-slate-800 text-right">-1,200.00</td>
+                                                <td className="px-4 py-2.5 text-[10px] font-mono text-blue-600 text-right">-1,200.00</td>
+                                                <td className="px-4 py-2.5 text-right">{renderLedgerStatus('Rollover')}</td>
+                                            </tr>
+                                            <tr className="hover:bg-slate-50/50">
+                                                <td className="px-4 py-2.5 text-[10px] font-medium text-slate-500">Rent Q4 (Receivable)</td>
+                                                <td className="px-4 py-2.5 text-[10px] font-mono text-slate-400 text-right">+3,600.00</td>
+                                                <td className="px-4 py-2.5 text-[10px] font-mono text-slate-500 text-right">+3,600.00</td>
+                                                <td className="px-4 py-2.5 text-right">{renderLedgerStatus('✅ Reconciled')}</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+
+                                {/* Property 2: Sunset Blvd (History) */}
+                                <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm opacity-60">
+                                    <div className="bg-slate-50 px-4 py-3 border-b border-slate-200 flex justify-between items-center">
+                                        <div className="flex items-center gap-2">
+                                            <div className="p-1 bg-white rounded border border-slate-200 shadow-sm"><Icons.Archive size={12} className="text-slate-400"/></div>
+                                            <div>
+                                                <div className="font-bold text-xs text-slate-500">Sunset Blvd</div>
+                                                <div className="text-[9px] text-slate-400 font-mono">TN202105B</div>
+                                            </div>
+                                        </div>
+                                        <span className="text-[9px] px-2 py-0.5 bg-slate-100 text-slate-500 rounded-full font-bold border border-slate-200 shadow-sm">Expired</span>
+                                    </div>
+                                    <table className="w-full text-left">
+                                        <tbody className="divide-y divide-slate-50">
+                                            <tr className="hover:bg-slate-50/50">
+                                                <td className="px-4 py-2.5 text-[10px] font-bold text-slate-500 w-1/3">Deposit (Payable)</td>
+                                                <td className="px-4 py-2.5 text-[10px] font-mono font-medium text-slate-400 text-right">-1,100.00</td>
+                                                <td className="px-4 py-2.5 text-[10px] font-mono text-slate-400 text-right">-1,100.00</td>
+                                                <td className="px-4 py-2.5 text-right">{renderLedgerStatus('✅ Reconciled')}</td>
+                                            </tr>
+                                            <tr className="hover:bg-slate-50/50">
+                                                <td className="px-4 py-2.5 text-[10px] font-bold text-slate-500">Rent Q4 (Receivable)</td>
+                                                <td className="px-4 py-2.5 text-[10px] font-mono font-medium text-slate-400 text-right">+3,300.00</td>
+                                                <td className="px-4 py-2.5 text-[10px] font-mono text-slate-400 text-right">+3,300.00</td>
+                                                <td className="px-4 py-2.5 text-right">{renderLedgerStatus('✅ Reconciled')}</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+
+                            </div>
+                            );
+                    }
+                }
+                    return <div className="text-center text-slate-400 mt-10">Select an item to view details</div>;
+            };
+
+            return (
+                <div className="pc-frame w-[900px] h-[580px] bg-slate-50 rounded-xl shadow-2xl border-4 border-slate-300 overflow-hidden relative flex flex-col mx-auto">
+                    <div className="h-8 bg-slate-200 flex items-center px-3 gap-2">
+                        <div className="pc-dot bg-red-400 rounded-full w-2.5 h-2.5"></div>
+                        <div className="pc-dot bg-amber-400 rounded-full w-2.5 h-2.5"></div>
+                        <div className="pc-dot bg-green-400 rounded-full w-2.5 h-2.5"></div>
+                    </div>
+                    <div className="w-full h-full flex flex-col bg-slate-50 text-slate-800 font-sans">
+                        <div className="h-14 bg-white border-b border-slate-200 flex items-center justify-between px-6">
+                            <div className="flex items-center gap-2"><div className="w-6 h-6 bg-blue-600 rounded-md flex items-center justify-center text-white font-bold text-xs"><Icons.Home size={14} className="text-white"/></div><span className="font-bold text-sm tracking-tight">HOME • Ledger Admin</span></div>
+                            <div className="flex items-center gap-3">
+                                <div className="text-right"><div className="text-xs font-bold">Dan</div><div className="text-[10px] text-slate-400">Senior Admin</div></div>
+                                <div className="w-8 h-8 bg-slate-200 rounded-full overflow-hidden">
+                                    <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=200" className="w-full h-full object-cover" alt="Dan" />
+                                </div>
+                            </div>
+                        </div>
+                        <div className="flex flex-1 overflow-hidden">
+                            <div className="w-64 bg-white border-r border-slate-200 flex flex-col flex-shrink-0">
+                                <div className="p-4 border-b border-slate-100 flex gap-2">
+                                        <button onClick={() => { setView('landlord'); setTab('request'); }} className={`flex-1 py-1.5 rounded-md text-[10px] font-bold transition-all ${view === 'landlord' ? 'bg-blue-50 text-blue-600' : 'text-slate-400 hover:bg-slate-50'}`}>Landlords</button>
+                                    <button onClick={() => { setView('tenant'); setTab('request'); }} className={`flex-1 py-1.5 rounded-md text-[10px] font-bold transition-all ${view === 'tenant' ? 'bg-blue-50 text-blue-600' : 'text-slate-400 hover:bg-slate-50'}`}>Tenants</button>
+                                </div>
+                                <div className="flex-1 overflow-y-auto p-2 space-y-2">
+                                    <div className="px-2 mb-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider">ToDo List ({currentList.length})</div>
+                                    {currentList.map(item => (
+                                        <div key={item.id} onClick={() => setSelectedItem(item.id)} className={`p-3 rounded-lg border cursor-pointer transition-all ${selectedItem === item.id ? 'bg-blue-50 border-blue-200 shadow-sm' : 'bg-white border-slate-100 hover:border-slate-200'}`}>
+                                            <div className="flex items-center gap-3 mb-2">
+                                                <div className="w-8 h-8 rounded-full bg-slate-100 overflow-hidden flex-shrink-0">
+                                                    <img src={item.img} className="w-full h-full object-cover" alt={item.name} />
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                    <h4 className="text-xs font-bold text-slate-800 truncate">{item.name}</h4>
+                                                    <div className="text-[10px] text-slate-500 truncate">{item.property}</div>
+                                                </div>
+                                            </div>
+                                            <div className="flex justify-between items-center border-t border-slate-50 pt-2">
+                                                <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold ${item.priority === 'high' ? 'bg-red-100 text-red-600' : 'bg-slate-100 text-slate-500'}`}>{item.priority === 'high' ? 'High' : 'Normal'}</span>
+                                                <span className={`text-[9px] font-medium ${scenario === 'request_completed' && (item.id === 'linda' || item.id === 'emily') ? 'text-green-600' : 'text-blue-600'}`}>
+                                                    {item.status}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                            <div className="flex-1 flex flex-col overflow-hidden bg-slate-50">
+                                <div className="bg-white border-b border-slate-200 px-8 pt-4 flex gap-6 sticky top-0 z-10">
+                                    <button onClick={() => setTab('request')} className={`pb-3 text-xs font-bold border-b-2 transition-all ${tab === 'request' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-400 hover:text-slate-600'}`}>Current Request</button>
+                                    <button onClick={() => setTab('profile')} className={`pb-3 text-xs font-bold border-b-2 transition-all ${tab === 'profile' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-400 hover:text-slate-600'}`}>Profile & Contracts</button>
+                                    <button onClick={() => setTab('ledger')} className={`pb-3 text-xs font-bold border-b-2 transition-all ${tab === 'ledger' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-400 hover:text-slate-600'}`}>Ledger</button>
+                                </div>
+                                <div className="flex-1 p-8 overflow-y-auto">
+                                    <div className="max-w-3xl mx-auto">
+                                        <div className="flex justify-between items-end mb-6"><div><h1 className="text-xl font-bold text-slate-900">{view === 'landlord' ? 'Landlord Dashboard: ' + (selectedItem === 'linda' ? 'Linda' : '...') : 'Tenant Dashboard: ' + (selectedItem === 'emily' ? 'Emily' : '...')}</h1><p className="text-xs text-slate-500 mt-1">Tracing ID: #TRX-{selectedItem === 'linda' ? '8821-L' : '9942-T'} • Status: {tab === 'ledger' ? 'Financial View' : 'Active View'}</p></div></div>
+                                        {renderContent()}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const App = () => {
+            const [activeTab, setActiveTab] = useState('landlord');
+            
+            // Landlord State
+            const [scenario, setScenario] = useState('pending');
+            const [highlightScr2, setHighlightScr2] = useState(false);
+            const [highlightScr3, setHighlightScr3] = useState(false);
+            
+            // Tenant State
+            const [tenantScenario, setTenantScenario] = useState('locked'); 
+            const [walletView, setWalletView] = useState('default'); 
+            const [highlightTenProp, setHighlightTenProp] = useState(false);
+            const [highlightTenWallet, setHighlightTenWallet] = useState(false);
+
+            // Admin State
+            const [adminScenario, setAdminScenario] = useState('request_initiated');
+
+            const handleDeepLinkToProp = () => {
+                setHighlightScr2(true);
+                setTimeout(() => setHighlightScr2(false), 2000);
+            };
+
+            const handlePropertyAction = (actionType) => {
+                if (actionType === 'initiate') {
+                    setScenario('processing');
+                    setHighlightScr3(true);
+                } else if (actionType === 'available' || actionType === 'tenant') {
+                    setHighlightScr3(true);
+                }
+                setTimeout(() => setHighlightScr3(false), 2000);
+            };
+            
+            const handleTenantAction = (action) => {
+                if (action === 'estimate') {
+                    setWalletView('estimate');
+                    setHighlightTenWallet(true);
+                }
+                if (action === 'renew') {
+                    setTenantScenario('processing');
+                    setHighlightTenProp(true);
+                }
+                if (action === 'proceed_pay') {
+                    setWalletView('payment');
+                    setHighlightTenWallet(true);
+                }
+                if (action === 'finish_pay') {
+                    setTenantScenario('renewed');
+                    setWalletView('installments');
+                    setHighlightTenProp(true);
+                }
+                    if (action === 'view_bill') {
+                    setWalletView('installments');
+                    setHighlightTenWallet(true);
+                }
+                
+                setTimeout(() => {
+                    setHighlightTenProp(false);
+                    setHighlightTenWallet(false);
+                }, 1000);
+            };
+
+            const setTenantStateHelper = (state) => {
+                setTenantScenario(state);
+                if (state === 'locked' || state === 'action_needed') setWalletView('default');
+                if (state === 'renewed') setWalletView('installments');
+            };
+
+            const handleAdminGenerate = (viewType) => {
+                if (viewType === 'tenant') {
+                    if (tenantScenario === 'locked') {
+                        setTenantScenario('action_needed');
+                    }
+                }
+                if (viewType === 'landlord') {
+                    // Logic for landlord admin action
+                }
+            };
+
+            const renderController = () => {
+                if (activeTab === 'landlord') {
+                    return (
+                        <div className="space-y-4">
+                            <p className="text-xs text-gray-500 font-mono">Select Data Scenario:</p>
+                            <button onClick={() => setScenario('pending')} className={`w-full p-4 rounded-xl border-2 text-left transition-all group ${scenario === 'pending' ? 'border-amber-400 bg-amber-50' : 'border-gray-100 hover:border-amber-200'}`}><div className="flex items-center justify-between mb-1"><span className={`text-xs font-bold uppercase ${scenario === 'pending' ? 'text-amber-700' : 'text-gray-500'}`}>Scenario A</span>{scenario === 'pending' && <Icons.Check size={14} className="text-amber-600" />}</div><div className="font-bold text-gray-800 text-sm">Pending Renewal</div><ul className="text-[10px] text-gray-500 mt-2 list-disc list-inside space-y-1"><li>Scr 1: Expiring Alert</li><li>Scr 2: "Initiate" Btn Active</li><li>Scr 3: Assets Active (Normal)</li></ul></button>
+                                <button onClick={() => setScenario('processing')} className={`w-full p-4 rounded-xl border-2 text-left transition-all group ${scenario === 'processing' ? 'border-gray-400 bg-gray-100' : 'border-gray-100 hover:border-gray-300'}`}><div className="flex items-center justify-between mb-1"><span className={`text-xs font-bold uppercase ${scenario === 'processing' ? 'text-gray-700' : 'text-gray-500'}`}>Scenario B</span>{scenario === 'processing' && <Icons.Check size={14} className="text-gray-600" />}</div><div className="font-bold text-gray-800 text-sm">In Progress</div><ul className="text-[10px] text-gray-500 mt-2 list-disc list-inside space-y-1"><li>Scr 1: Alert Remains</li><li>Scr 2: Property Locked/Frozen</li><li>Scr 3: Assets Frozen (Locked)</li></ul></button>
+                            <button onClick={() => setScenario('renewed')} className={`w-full p-4 rounded-xl border-2 text-left transition-all group ${scenario === 'renewed' ? 'border-green-400 bg-green-50' : 'border-gray-100 hover:border-green-200'}`}><div className="flex items-center justify-between mb-1"><span className={`text-xs font-bold uppercase ${scenario === 'renewed' ? 'text-green-700' : 'text-gray-500'}`}>Scenario C</span>{scenario === 'renewed' && <Icons.Check size={14} className="text-green-600" />}</div><div className="font-bold text-gray-800 text-sm">Renewal Complete</div><ul className="text-[10px] text-gray-500 mt-2 list-disc list-inside space-y-1"><li>Scr 1: Success Alert</li><li>Scr 2: Available Status (Try clicking!)</li><li>Scr 3: Unfrozen / Income Reset</li></ul></button>
+                                <button onClick={() => setScenario('rented')} className={`w-full p-4 rounded-xl border-2 text-left transition-all group ${scenario === 'rented' ? 'border-blue-400 bg-blue-50' : 'border-gray-100 hover:border-blue-200'}`}><div className="flex items-center justify-between mb-1"><span className={`text-xs font-bold uppercase ${scenario === 'rented' ? 'text-blue-700' : 'text-gray-500'}`}>Scenario D</span>{scenario === 'rented' && <Icons.Check size={14} className="text-blue-600" />}</div><div className="font-bold text-gray-800 text-sm">Property Rented</div><ul className="text-[10px] text-gray-500 mt-2 list-disc list-inside space-y-1"><li>Scr 1: New Tenant Alert</li><li>Scr 2: Occupied Status (Try clicking!)</li><li>Scr 3: Rent +$1450 to Pending</li></ul></button>
+                        </div>
+                    );
+                }
+                if (activeTab === 'admin') {
+                    return (
+                        <div className="space-y-4">
+                            <p className="text-xs text-gray-500 font-mono">Select Admin Scenario:</p>
+                            <button onClick={() => setAdminScenario('request_initiated')} className={`w-full p-4 rounded-xl border-2 text-left transition-all group ${adminScenario === 'request_initiated' ? 'border-blue-500 bg-blue-50' : 'border-gray-100 hover:border-blue-200'}`}>
+                                <div className="flex items-center justify-between mb-1">
+                                    <span className={`text-xs font-bold uppercase ${adminScenario === 'request_initiated' ? 'text-blue-700' : 'text-gray-500'}`}>Scenario 1</span>
+                                    {adminScenario === 'request_initiated' && <Icons.Check size={14} className="text-blue-600" />}
+                                </div>
+                                <div className="font-bold text-gray-800 text-sm">Request Initiated</div>
+                                <div className="text-[10px] text-gray-500 mt-1">Status: Pending. ToDo: Renewal Requested. Ledger: Pending entries.</div>
+                            </button>
+                            
+                            <button onClick={() => setAdminScenario('request_completed')} className={`w-full p-4 rounded-xl border-2 text-left transition-all group ${adminScenario === 'request_completed' ? 'border-green-500 bg-green-50' : 'border-gray-100 hover:border-green-200'}`}>
+                                <div className="flex items-center justify-between mb-1">
+                                    <span className={`text-xs font-bold uppercase ${adminScenario === 'request_completed' ? 'text-green-700' : 'text-gray-500'}`}>Scenario 2</span>
+                                    {adminScenario === 'request_completed' && <Icons.Check size={14} className="text-green-600" />}
+                                </div>
+                                <div className="font-bold text-gray-800 text-sm">Request Completed</div>
+                                <div className="text-[10px] text-gray-500 mt-1">Status: Active/Signed. ToDo: Active Lease. Ledger: Reconciled.</div>
+                            </button>
+
+                            <div className="mt-4 p-3 bg-slate-50 rounded-xl border border-slate-100 text-[10px] text-slate-500 leading-relaxed">
+                                <strong>Note:</strong> Switching scenarios updates the Dashboard data (ToDo list, Ledger status, Contract state) to reflect the full lifecycle of a renewal request.
+                            </div>
+                        </div>
+                    );
+                }
+                if (activeTab === 'tenant') {
+                        return (
+                        <div className="space-y-4">
+                            <p className="text-xs text-gray-500 font-mono">Emily's Journey:</p>
+                            <button onClick={() => setTenantStateHelper('locked')} className={`w-full p-4 rounded-xl border-2 text-left transition-all group ${tenantScenario === 'locked' ? 'border-gray-500 bg-gray-50' : 'border-gray-100 hover:border-gray-200'}`}><div className="flex items-center justify-between mb-1"><span className="text-xs font-bold uppercase text-gray-500">Step 1: Locked</span>{tenantScenario === 'locked' && <Icons.Check size={14} />}</div><div className="font-bold text-gray-800 text-sm">Data 5-1: Cannot Renew</div><div className="text-[10px] text-gray-500 mt-1">Landlord hasn't initiated. Tag: Expiring.</div></button>
+                            <button onClick={() => setTenantStateHelper('action_needed')} className={`w-full p-4 rounded-xl border-2 text-left transition-all group ${tenantScenario === 'action_needed' ? 'border-amber-400 bg-amber-50' : 'border-gray-100 hover:border-amber-200'}`}><div className="flex items-center justify-between mb-1"><span className="text-xs font-bold uppercase text-amber-700">Step 2: Action Needed</span>{tenantScenario === 'action_needed' && <Icons.Check size={14} className="text-amber-600" />}</div><div className="font-bold text-gray-800 text-sm">Data 5-2: Can Renew</div><div className="text-[10px] text-gray-500 mt-1">Tag: Expiring. Try clicking "Estimate" link.</div></button>
+                            <button onClick={() => setTenantStateHelper('renewed')} className={`w-full p-4 rounded-xl border-2 text-left transition-all group ${tenantScenario === 'renewed' ? 'border-green-400 bg-green-50' : 'border-gray-100 hover:border-green-200'}`}><div className="flex items-center justify-between mb-1"><span className="text-xs font-bold uppercase text-green-700">Step 3: Renewed</span>{tenantScenario === 'renewed' && <Icons.Check size={14} className="text-green-600" />}</div><div className="font-bold text-gray-800 text-sm">Data 5-4 / 6-3: Renewed</div><div className="text-[10px] text-gray-500 mt-1">Tag: Signed. Wallet shows installments.</div></button>
+                        </div>
+                    );
+                }
+            };
+
+            return (
+                <div className="flex flex-col xl:flex-row h-screen overflow-hidden bg-[#f3f4f6]">
+                    {/* Left Column: Screens Area (4/5 width) */}
+                    <div className="w-full xl:w-4/5 flex flex-col items-center border-r border-gray-200 bg-[#f3f4f6] h-full overflow-y-auto">
+                        {/* Header Tabs - Scrollable (Not Sticky) */}
+                        <div className="w-full pt-8 pb-4 flex flex-col items-center bg-[#f3f4f6] flex-shrink-0">
+                            <div className="flex gap-2 mb-4 bg-white p-1.5 rounded-xl shadow-sm border border-gray-200">
+                                <button onClick={() => setActiveTab('landlord')} className={`px-6 py-2 rounded-lg text-sm font-bold transition-all ${activeTab === 'landlord' ? 'bg-black text-white shadow-md' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'}`}>Landlord</button>
+                                <button onClick={() => setActiveTab('admin')} className={`px-6 py-2 rounded-lg text-sm font-bold transition-all ${activeTab === 'admin' ? 'bg-black text-white shadow-md' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'}`}>Admin</button>
+                                <button onClick={() => setActiveTab('tenant')} className={`px-6 py-2 rounded-lg text-sm font-bold transition-all ${activeTab === 'tenant' ? 'bg-black text-white shadow-md' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'}`}>Tenant</button>
+                            </div>
+                            
+                            <div className="h-6 text-center">
+                                {activeTab === 'landlord' && <p className="text-gray-500 text-xs font-mono animate-fade-in uppercase tracking-wide">Flow: Notification -> Property Action -> Wallet Impact</p>}
+                                {activeTab === 'admin' && <p className="text-gray-500 text-xs font-mono animate-fade-in uppercase tracking-wide">Flow: Dashboard Overview -> Contract Request Approvals -> Ledger Entries Updated</p>}
+                                {activeTab === 'tenant' && <p className="text-gray-500 text-xs font-mono animate-fade-in uppercase tracking-wide">Flow: Estimate -> Renew -> Payment -> Signed</p>}
+                            </div>
+                        </div>
+
+                        {/* Screens Render Area */}
+                        <div className="w-full p-8 flex items-start justify-center">
+                            <div className={`flex flex-wrap xl:flex-nowrap gap-8 items-start justify-center pb-20 ${activeTab === 'admin' ? 'w-full' : ''}`}>
+                                {activeTab === 'landlord' && (
+                                    <React.Fragment>
+                                        <div className="flex flex-col items-center gap-4 animate-fade-in"><span className="text-xs font-mono font-bold text-gray-400 tracking-widest">SCREEN 1</span><Screen1_Lock scenario={scenario} onNotificationClick={handleDeepLinkToProp} /></div>
+                                        <div className="self-center hidden xl:block text-gray-300 animate-fade-in"><Icons.Signal size={32} className="rotate-90" /></div>
+                                        <div className="flex flex-col items-center gap-4 animate-fade-in"><span className="text-xs font-mono font-bold text-gray-400 tracking-widest">SCREEN 2</span><Screen2_PropertyList scenario={scenario} onAction={handlePropertyAction} highlight={highlightScr2} /></div>
+                                        <div className="self-center hidden xl:block text-gray-300 animate-fade-in"><Icons.Signal size={32} className="rotate-90" /></div>
+                                        <div className="flex flex-col items-center gap-4 animate-fade-in"><span className="text-xs font-mono font-bold text-gray-400 tracking-widest">SCREEN 3</span><Screen3_Wallet scenario={scenario} highlight={highlightScr3} /></div>
+                                    </React.Fragment>
+                                )}
+                                {activeTab === 'admin' && (
+                                    <div className="flex flex-col items-center gap-4 animate-fade-in w-full max-w-[900px]"><span className="text-xs font-mono font-bold text-gray-400 tracking-widest">SCREEN 4 (PC)</span><Screen4_AdminDashboard onGenerate={handleAdminGenerate} scenario={adminScenario} /></div>
+                                )}
+                                {activeTab === 'tenant' && (
+                                    <React.Fragment>
+                                        <div className="flex flex-col items-center gap-4 animate-fade-in"><span className="text-xs font-mono font-bold text-gray-400 tracking-widest">SCREEN 5</span><Screen5_TenantPropList scenario={tenantScenario} onAction={handleTenantAction} highlight={highlightTenProp} /></div>
+                                        <div className="self-center hidden xl:block text-gray-300 animate-fade-in"><Icons.Signal size={32} className="rotate-90" /></div>
+                                        <div className="flex flex-col items-center gap-4 animate-fade-in"><span className="text-xs font-mono font-bold text-gray-400 tracking-widest">SCREEN 6</span><Screen6_TenantWallet walletView={walletView} onAction={handleTenantAction} highlightCard={highlightTenWallet} /></div>
+                                    </React.Fragment>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Right Column: Controller Area (1/5 width) */}
+                    <div className="w-full xl:w-1/5 bg-white border-l border-gray-200 h-1/3 xl:h-full overflow-y-auto shadow-xl z-20 flex flex-col">
+                        <div className="p-6">
+                            <div className="flex items-center space-x-2 mb-6 pb-4 border-b border-gray-100">
+                                <div className="w-3 h-3 rounded-full bg-blue-500 animate-pulse"></div>
+                                <h2 className="text-sm font-bold text-gray-800 uppercase tracking-wider">{activeTab === 'landlord' ? 'Landlord' : (activeTab === 'admin' ? 'Admin' : 'Tenant')} Ctr</h2>
+                            </div>
+                            
+                            <div className="flex-1">
+                                {renderController()}
+                            </div>
+
+                            <div className="mt-8 pt-6 border-t border-gray-100">
+                                <div className="text-[10px] text-gray-400 font-mono text-center">GLOBAL STATE MANAGER</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const rootElement = document.getElementById('root');
+        const root = ReactDOM.createRoot(rootElement);
+        root.render(<App />);
+    </script>
+</body>
+</html>
