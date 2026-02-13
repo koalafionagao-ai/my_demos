@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Product Portfolio | Project Hub</title>
+    <style>
+        /* Minimalist "Dark Mode" UI - All-in-one file */
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
+            background-color: #0d1117; 
+            color: #c9d1d9; 
+            margin: 0; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            justify-content: center; 
+            min-height: 100vh; 
+        }
+        .container { text-align: center; width: 90%; max-width: 500px; }
+        h1 { font-weight: 500; letter-spacing: -0.5px; color: #f0f6fc; margin-bottom: 30px; }
+        
+        /* Project Links */
+        .project-list { display: flex; flex-direction: column; gap: 16px; }
+        .card { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            background: #161b22; 
+            border: 1px solid #30363d; 
+            padding: 20px; 
+            border-radius: 8px; 
+            text-decoration: none; 
+            color: #58a6ff; 
+            transition: all 0.2s ease;
+        }
+        .card:hover { 
+            background: #1c2128; 
+            border-color: #8b949e; 
+            transform: translateX(5px);
+        }
+        .card-info { text-align: left; }
+        .card-info span { color: #8b949e; font-size: 0.85rem; display: block; margin-top: 4px; }
+        .arrow { font-size: 1.2rem; }
+
+        .footer { margin-top: 50px; font-size: 12px; color: #484f58; letter-spacing: 1px; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>PROJECT HUB</h1>
+
+        <div class="project-list">
+            <a href="./safepay/" class="card">
+                <div class="card-info">
+                    <strong>SafePay Security Dashboard</strong>
+                    <span>Risk vs. Conversion Balance Logic</span>
+                </div>
+                <div class="arrow">→</div>
+            </a>
+
+            <div class="card" style="opacity: 0.4; cursor: not-allowed; border-style: dashed;">
+                <div class="card-info">
+                    <strong style="color: #8b949e;">Future Case Study</strong>
+                    <span>Building Next Gen AI Product...</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="footer">STRICTLY CONFIDENTIAL | PORTFOLIO 2026</div>
+    </div>
+
+</body>
+</html>
