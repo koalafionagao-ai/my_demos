@@ -1,0 +1,1937 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Luxury - The Art of Motion</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Playfair+Display:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+    
+    <!-- React & ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    
+    <!-- Babel for JSX -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #ffffff;
+            color: #111;
+        }
+        .serif {
+            font-family: 'Playfair Display', serif;
+        }
+        .fade-in {
+            animation: fadeIn 0.8s ease-out forwards;
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        .fade-in-delay-1 { animation-delay: 0.1s; }
+        .fade-in-delay-2 { animation-delay: 0.2s; }
+        .fade-in-delay-3 { animation-delay: 0.3s; }
+        
+        @keyframes fadeIn {
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #ffffff; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #d1d5db; 
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #9ca3af; 
+        }
+
+        /* Loading Spinner */
+        .loader {
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #000;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Dev Switcher */
+        .dev-container {
+            position: fixed;
+            right: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            z-index: 100;
+            display: flex;
+            align-items: center;
+        }
+        
+        .dev-panel {
+            width: 0;
+            overflow: hidden;
+            background: white;
+            transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1), padding 0.3s, opacity 0.3s;
+            opacity: 0;
+            white-space: nowrap;
+            border-top-left-radius: 0.5rem;
+            border-bottom-left-radius: 0.5rem;
+            box-shadow: -10px 0 30px rgba(0,0,0,0.1);
+        }
+
+        .dev-container:hover .dev-panel {
+            width: 280px;
+            padding: 1.5rem;
+            opacity: 1;
+        }
+
+        .dev-trigger {
+            background: #000;
+            color: white;
+            padding: 1rem 0.5rem;
+            border-top-left-radius: 0.5rem;
+            border-bottom-left-radius: 0.5rem;
+            cursor: pointer;
+            box-shadow: -5px 0 15px rgba(0,0,0,0.1);
+            transition: transform 0.2s;
+        }
+
+        .dev-container:hover .dev-trigger {
+            background: #333;
+        }
+
+        .vertical-text {
+            writing-mode: vertical-rl;
+            text-orientation: mixed;
+            transform: rotate(180deg);
+        }
+        
+        /* Custom Range Slider Styling */
+        input[type=range] {
+            -webkit-appearance: none; 
+            width: 100%; 
+            background: transparent; 
+        }
+        
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 20px;
+            width: 20px;
+            border-radius: 50%;
+            background: #000000;
+            cursor: pointer;
+            margin-top: -8px; 
+            box-shadow: 0 0 0 4px rgba(255,255,255,1), 0 0 0 5px rgba(0,0,0,0.1);
+            transition: transform 0.1s;
+        }
+
+        input[type=range]::-webkit-slider-thumb:hover {
+            transform: scale(1.1);
+        }
+        
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 4px;
+            cursor: pointer;
+            background: #e5e7eb;
+            border-radius: 2px;
+        }
+
+        input[type=range]:focus::-webkit-slider-thumb {
+             box-shadow: 0 0 0 4px rgba(255,255,255,1), 0 0 0 6px rgba(0,0,0,0.2);
+        }
+        
+        /* Custom Checkbox */
+        .custom-checkbox {
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border: 1px solid #e5e7eb;
+            border-radius: 2px;
+            cursor: pointer;
+            display: grid;
+            place-content: center;
+            transition: all 0.2s;
+        }
+        .custom-checkbox::before {
+            content: "";
+            width: 10px;
+            height: 10px;
+            transform: scale(0);
+            transition: 0.2s transform ease-in-out;
+            background-color: white;
+            box-shadow: inset 1em 1em white;
+            transform-origin: center;
+            clip-path: polygon(14% 44%, 0 65%, 50% 100%, 100% 16%, 80% 0%, 43% 62%);
+        }
+        .custom-checkbox:checked {
+            background-color: black;
+            border-color: black;
+        }
+        .custom-checkbox:checked::before {
+            transform: scale(1);
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        // --- Icons (Inline SVGs) ---
+        const IconGlobe = ({ size = 20, className }) => (
+            <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1 4-10z"></path></svg>
+        );
+        const IconSearch = ({ size = 20, className }) => (
+            <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+        );
+        const IconUser = ({ size = 20, className }) => (
+            <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+        );
+        const IconMenu = ({ size = 24, className }) => (
+            <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+        );
+        const IconArrowRight = ({ size = 20, className }) => (
+            <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+        );
+        const IconArrowUp = ({ size = 16, className }) => (
+            <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><line x1="12" y1="19" x2="12" y2="5"></line><polyline points="5 12 12 5 19 12"></polyline></svg>
+        );
+        const IconArrowDown = ({ size = 16, className }) => (
+            <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><line x1="12" y1="5" x2="12" y2="19"></line><polyline points="19 12 12 19 5 12"></polyline></svg>
+        );
+        const IconCompass = ({ size = 24, className }) => (
+            <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="12" cy="12" r="10"></circle><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"></polygon></svg>
+        );
+        const IconSparkles = ({ size = 24, className }) => (
+            <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"></path></svg>
+        );
+        const IconSliders = ({ size = 24, className }) => (
+            <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className={className}><line x1="4" y1="21" x2="4" y2="14"></line><line x1="4" y1="10" x2="4" y2="3"></line><line x1="12" y1="21" x2="12" y2="12"></line><line x1="12" y1="8" x2="12" y2="3"></line><line x1="20" y1="21" x2="20" y2="16"></line><line x1="20" y1="12" x2="20" y2="3"></line><line x1="1" y1="14" x2="7" y2="14"></line><line x1="9" y1="8" x2="15" y2="8"></line><line x1="17" y1="16" x2="23" y2="16"></line></svg>
+        );
+        const IconCheck = ({ size = 16, className }) => (
+            <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className={className}><polyline points="20 6 9 17 4 12"></polyline></svg>
+        );
+        const IconZap = ({ size = 16, className }) => (
+            <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+        );
+        const IconFuel = ({ size = 16, className }) => (
+            <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M3 22v-8a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v8"></path><path d="M5 12V7a2 2 0 0 1 2-2h3"></path><path d="M22 22h-2"></path><path d="M12 22v-9"></path><path d="M15 2h2a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2h-2"></path></svg>
+        );
+        const IconCopy = ({ size = 16, className }) => (
+            <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+        );
+        const IconCar = ({ size = 32, className }) => (
+             <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/><path d="M5 17h2"/><path d="M15 17h2"/></svg>
+        );
+        const IconChevronDown = ({ size = 20, className }) => (
+            <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polyline points="6 9 12 15 18 9"></polyline></svg>
+        );
+        const IconChevronUp = ({ size = 20, className }) => (
+            <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polyline points="18 15 12 9 6 15"></polyline></svg>
+        );
+        const IconList = ({ size = 20, className }) => (
+            <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
+        );
+        const IconGrid = ({ size = 20, className }) => (
+            <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+        );
+        const IconShare = ({ size = 20, className }) => (
+            <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path><polyline points="16 6 12 2 8 6"></polyline><line x1="12" y1="2" x2="12" y2="15"></line></svg>
+        );
+        const IconQrCode = ({ size = 20, className }) => (
+            <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><path d="M10 14H3v7h7v-7z"></path></svg>
+        );
+        const IconEdit = ({ size = 20, className }) => (
+            <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+        );
+        const IconMapPin = ({ size = 20, className }) => (
+            <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+        );
+        const IconAlert = ({ size = 20, className }) => (
+            <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+        );
+        const IconMail = ({ size = 20, className }) => (
+            <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+        );
+        const IconX = ({ size = 20, className }) => (
+            <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        );
+        const IconRefreshCcw = ({ size = 16, className }) => (
+            <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M21 2v6h-6"></path><path d="M3 12a9 9 0 0 1 15-6.7L21 8"></path><path d="M3 22v-6h6"></path><path d="M21 12a9 9 0 0 1-15 6.7L3 16"></path></svg>
+        );
+
+        // --- Custom Hook for Image Testing ---
+        const useImageMonitor = () => {
+            const [imageStatuses, setImageStatuses] = useState({});
+
+            const reportStatus = (id, status, src) => {
+                setImageStatuses(prev => ({
+                    ...prev,
+                    [id]: { status, src }
+                }));
+            };
+
+            return { imageStatuses, reportStatus };
+        };
+
+        // --- Smart Image Component (Auto-Fixing) ---
+        const SmartImage = ({ src, fallbackSrc, alt, className, id, reportStatus }) => {
+            const [currentSrc, setCurrentSrc] = useState(src);
+            const [status, setStatus] = useState('loading'); // loading, loaded, error
+            const [triedFallback, setTriedFallback] = useState(false);
+
+            useEffect(() => {
+                // Reset when src changes
+                setCurrentSrc(src);
+                setStatus('loading');
+                setTriedFallback(false);
+            }, [src]);
+
+            const handleLoad = () => {
+                setStatus('loaded');
+                if(reportStatus) reportStatus(id || src, 'loaded', currentSrc);
+            };
+
+            const handleError = () => {
+                if (fallbackSrc && !triedFallback) {
+                    console.log(`Image load failed for ${currentSrc}, switching to fallback.`);
+                    setTriedFallback(true);
+                    setCurrentSrc(fallbackSrc);
+                    // Keep status as loading until fallback loads
+                } else {
+                    console.error(`Image permanently failed: ${currentSrc}`);
+                    setStatus('error');
+                    if(reportStatus) reportStatus(id || src, 'error', currentSrc);
+                }
+            };
+
+            return (
+                <div className={`${className} relative overflow-hidden bg-gray-100 min-h-[150px]`}>
+                    {/* Loading Spinner */}
+                    {status === 'loading' && (
+                        <div className="absolute inset-0 flex items-center justify-center z-10 bg-gray-50">
+                            <div className="loader"></div>
+                        </div>
+                    )}
+
+                    {/* Error State - Fallback Card */}
+                    {status === 'error' && (
+                        <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-400 z-20 bg-neutral-900 text-white">
+                            <IconCar size={64} className="opacity-20 mb-4" />
+                            <span className="text-[12px] font-bold uppercase tracking-widest opacity-50 mb-1">Visualizer Offline</span>
+                            <span className="text-[10px] opacity-30">Please check connection</span>
+                        </div>
+                    )}
+
+                    {/* The Image */}
+                    <img 
+                        src={currentSrc} 
+                        alt={alt} 
+                        className={`w-full h-full object-cover object-center transition-opacity duration-700 ${status === 'loaded' ? 'opacity-100' : 'opacity-0'}`}
+                        onLoad={handleLoad}
+                        onError={handleError}
+                    />
+                </div>
+            );
+        };
+
+        // --- Global Components ---
+        
+        const Navigation = ({ scrolled, onLogoClick }) => (
+            <nav className={`fixed top-0 w-full z-50 transition-all duration-500 ${scrolled ? 'bg-white/95 backdrop-blur-md py-4 shadow-sm' : 'bg-transparent py-8'}`}>
+                <div className="container mx-auto px-6 md:px-12 flex justify-between items-center">
+                    <div onClick={onLogoClick} className="text-2xl font-bold tracking-[0.2em] uppercase flex items-center gap-3 cursor-pointer z-50 group">
+                        <span className="w-8 h-8 md:w-10 md:h-10 bg-black text-white group-hover:bg-gray-800 transition-colors flex items-center justify-center rounded-sm font-serif italic text-lg md:text-xl">L</span>
+                        <span className="text-black group-hover:text-gray-700 transition-colors text-sm md:text-xl">LUXURY</span>
+                    </div>
+                    <div className="hidden md:flex items-center gap-8 lg:gap-12 text-xs font-medium tracking-[0.15em] text-gray-800 uppercase">
+                        <a href="#" className="hover:text-black transition-colors duration-300 font-semibold relative after:content-[''] after:absolute after:bottom-[-4px] after:left-0 after:w-0 after:h-[1px] after:bg-black after:transition-all hover:after:w-full">Models</a>
+                        <a href="#" className="hover:text-black transition-colors duration-300 relative after:content-[''] after:absolute after:bottom-[-4px] after:left-0 after:w-0 after:h-[1px] after:bg-black after:transition-all hover:after:w-full">Electric</a>
+                        <a href="#" className="hover:text-black transition-colors duration-300 relative after:content-[''] after:absolute after:bottom-[-4px] after:left-0 after:w-0 after:h-[1px] after:bg-black after:transition-all hover:after:w-full">Innovation</a>
+                        <a href="#" className="hover:text-black transition-colors duration-300 relative after:content-[''] after:absolute after:bottom-[-4px] after:left-0 after:w-0 after:h-[1px] after:bg-black after:transition-all hover:after:w-full">Store</a>
+                    </div>
+                    <div className="flex items-center gap-4 md:gap-6 text-black">
+                        <div className="hidden lg:flex items-center gap-2 text-[10px] font-bold tracking-widest opacity-80 border border-black/10 px-3 py-1 rounded-full">
+                            <IconGlobe size={12} />
+                            <span>NO / NOK</span>
+                        </div>
+                        <button className="hover:opacity-60 transition-opacity"><IconSearch size={20} /></button>
+                        <button className="hover:opacity-60 transition-opacity"><IconUser size={20} /></button>
+                        <button className="md:hidden"><IconMenu size={24} /></button>
+                    </div>
+                </div>
+            </nav>
+        );
+
+        const ProgressIndicator = ({ currentStepId, onStepClick }) => {
+            const steps = [
+                { id: 1, label: "Choose Mode" },
+                { id: 2, label: "Configure" },
+                { id: 3, label: "Compare" },
+                { id: 4, label: "Preview" },
+                { id: 5, label: "Complete" }
+            ];
+
+            return (
+                <div className="bg-white border-t border-gray-200 py-4 fixed bottom-0 w-full z-40 hidden md:flex">
+                    <div className="container mx-auto px-6">
+                        <div className="flex justify-between items-center text-[10px] lg:text-xs font-medium uppercase tracking-wider text-gray-400 w-full">
+                            {steps.map((step, index) => {
+                                const isActive = step.id === currentStepId;
+                                const isCompleted = step.id < currentStepId;
+                                const isClickable = step.id === 1 && currentStepId > 1; // Only step 1 is clickable to go back
+                                
+                                return (
+                                    <React.Fragment key={step.id}>
+                                        <div 
+                                            className={`flex items-center gap-2 
+                                                ${isActive ? 'text-black font-bold' : ''} 
+                                                ${isCompleted ? 'text-gray-800' : ''}
+                                                ${isClickable ? 'cursor-pointer hover:text-black transition-colors group' : ''}
+                                            `}
+                                            onClick={() => isClickable && onStepClick(step.id)}
+                                        >
+                                            <div className={`w-5 h-5 lg:w-6 lg:h-6 rounded-full border flex items-center justify-center transition-all duration-300
+                                                ${isActive ? 'border-black bg-black text-white scale-110' : ''}
+                                                ${isCompleted ? 'border-black bg-white text-black' : 'border-gray-300'}
+                                                ${!isActive && !isCompleted ? 'bg-transparent' : ''}
+                                                ${isClickable ? 'group-hover:border-black' : ''}
+                                            `}>
+                                                {isCompleted ? <IconCheck size={12} /> : step.id}
+                                            </div>
+                                            <span>{step.label}</span>
+                                        </div>
+                                        {index < steps.length - 1 && (
+                                            <div className={`h-[1px] flex-1 mx-2 lg:mx-4 transition-all duration-500 ${isCompleted ? 'bg-black' : 'bg-gray-200'}`}></div>
+                                        )}
+                                    </React.Fragment>
+                                );
+                            })}
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const DevSwitcher = ({ currentScreen, setScreen, imageStatuses }) => {
+            const total = Object.keys(imageStatuses).length;
+            const errors = Object.values(imageStatuses).filter(s => s.status === 'error').length;
+            
+            return (
+                <div className="dev-container">
+                    <div className="dev-panel">
+                        <div className="text-[10px] font-bold uppercase text-gray-400 mb-3 border-b pb-1">Navigation</div>
+                        <div className="flex flex-col gap-1 mb-4">
+                            <button onClick={() => setScreen('home')} className={`text-left px-3 py-2 text-xs rounded transition-colors ${currentScreen === 'home' ? 'bg-black text-white' : 'hover:bg-gray-100 text-gray-600'}`}>1. Home</button>
+                            <button onClick={() => setScreen('mode-selection')} className={`text-left px-3 py-2 text-xs rounded transition-colors ${currentScreen === 'mode-selection' ? 'bg-black text-white' : 'hover:bg-gray-100 text-gray-600'}`}>2. Modes</button>
+                            <button onClick={() => setScreen('free-exploration')} className={`text-left px-3 py-2 text-xs rounded transition-colors ${currentScreen === 'free-exploration' ? 'bg-black text-white' : 'hover:bg-gray-100 text-gray-600'}`}>3. Explore</button>
+                            <button onClick={() => setScreen('intent-config')} className={`text-left px-3 py-2 text-xs rounded transition-colors ${currentScreen === 'intent-config' ? 'bg-black text-white' : 'hover:bg-gray-100 text-gray-600'}`}>4. Intent</button>
+                            <button onClick={() => setScreen('manual-config')} className={`text-left px-3 py-2 text-xs rounded transition-colors ${currentScreen === 'manual-config' ? 'bg-black text-white' : 'hover:bg-gray-100 text-gray-600'}`}>5. Manual</button>
+                            <button onClick={() => setScreen('results')} className={`text-left px-3 py-2 text-xs rounded transition-colors ${currentScreen === 'results' ? 'bg-black text-white' : 'hover:bg-gray-100 text-gray-600'}`}>6. Results</button>
+                            <button onClick={() => setScreen('preview')} className={`text-left px-3 py-2 text-xs rounded transition-colors ${currentScreen === 'preview' ? 'bg-black text-white' : 'hover:bg-gray-100 text-gray-600'}`}>7. Preview</button>
+                            <button onClick={() => setScreen('complete')} className={`text-left px-3 py-2 text-xs rounded transition-colors ${currentScreen === 'complete' ? 'bg-black text-white' : 'hover:bg-gray-100 text-gray-600'}`}>8. Complete</button>
+                            <button onClick={() => setScreen('my-configurations')} className={`text-left px-3 py-2 text-xs rounded transition-colors ${currentScreen === 'my-configurations' ? 'bg-black text-white' : 'hover:bg-gray-100 text-gray-600'}`}>9. My Configs</button>
+                        </div>
+                        <div className="text-[10px] font-bold uppercase text-gray-400 mb-2 border-b pb-1 flex justify-between">
+                            <span>Image Monitor</span>
+                            {errors === 0 ? <span className="text-green-500">All Good</span> : <span className="text-amber-500">{errors} Fixed</span>}
+                        </div>
+                    </div>
+                    <div className="dev-trigger">
+                         <span className="vertical-text text-[10px] font-bold tracking-widest uppercase block h-6">DEV</span>
+                    </div>
+                </div>
+            );
+        };
+        
+        // --- Screen 1: Brand Homepage ---
+        const HomeScreen = ({ onStartConfig, onDiscover, reportStatus }) => {
+            return (
+                <main className="flex-grow relative h-screen w-full flex items-center bg-white overflow-hidden">
+                    {/* Background Image with Gradient Mask */}
+                    <div className="absolute inset-0 z-0">
+                         <SmartImage 
+                            id="home-hero"
+                            src="https://images.unsplash.com/photo-1542362567-b07e54358753?q=80&w=1600&auto=format&fit=crop" 
+                            fallbackSrc="https://images.unsplash.com/photo-1519078313888-5a8068170f8f?q=80&w=1015&auto=format&fit=crop"
+                            alt="Luxury Silver Car" 
+                            className="w-full h-full object-cover object-center"
+                            reportStatus={reportStatus}
+                        />
+                        {/* Luxury Gradient: Solid white on left, fading to transparent on right to reveal car */}
+                        <div className="absolute inset-0 bg-gradient-to-r from-white via-white/80 to-transparent"></div>
+                    </div>
+
+                    <div className="relative z-10 w-full px-6 md:px-12 container mx-auto pt-20 md:pt-0">
+                        <div className="max-w-xl fade-in text-black md:ml-12 lg:ml-0 mt-32 md:mt-0">
+                            <div className="inline-block mb-6 px-4 py-1 border border-black/10 rounded-full bg-white/80 backdrop-blur-md">
+                                <h2 className="text-[10px] md:text-xs font-bold tracking-[0.3em] uppercase text-gray-900">
+                                    The All-New Electric Series
+                                </h2>
+                            </div>
+                            
+                            <h1 className="text-5xl md:text-8xl font-serif italic mb-6 leading-none text-black">
+                                Silence is <br/><span className="text-gray-400">Power.</span>
+                            </h1>
+                            
+                            <p className="text-gray-600 text-sm md:text-lg max-w-md mb-10 font-light leading-relaxed tracking-wide">
+                                Design that defies convention. Performance that respects the planet. 
+                                Welcome to the new era of Norwegian luxury.
+                            </p>
+                            
+                            <div className="flex flex-col sm:flex-row gap-5 items-start">
+                                <button 
+                                    onClick={onStartConfig}
+                                    className="bg-black text-white h-14 px-8 rounded-full font-medium text-sm tracking-widest uppercase hover:bg-gray-800 transition-all transform hover:scale-105 flex items-center gap-3 shadow-xl group">
+                                    Configure Your Model
+                                    <IconArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
+                                </button>
+                                
+                                <button 
+                                    onClick={onDiscover}
+                                    className="group h-14 px-8 rounded-full font-medium text-sm tracking-widest uppercase text-black hover:text-gray-600 transition-all flex items-center gap-2">
+                                    <span className="border-b border-black group-hover:border-transparent transition-all pb-1">Discover Features</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </main>
+            );
+        };
+
+        // --- Screen 2: Choose Configuration Mode ---
+        const ModeSelectionScreen = ({ onSelectMode }) => {
+            const modes = [
+                {
+                    id: 'free',
+                    title: "Free Exploration",
+                    desc: "Browse our most popular configurations and make them your own. Perfect for inspiration.",
+                    icon: <IconCompass size={32} strokeWidth={1} />,
+                    color: "text-blue-600"
+                },
+                {
+                    id: 'intent',
+                    title: "Intent-Based",
+                    desc: "Let our AI guide you to your perfect match through a series of lifestyle questions.",
+                    icon: <IconSparkles size={32} strokeWidth={1} />,
+                    color: "text-purple-600"
+                },
+                {
+                    id: 'manual',
+                    title: "Manual Configurator",
+                    desc: "Build your masterpiece from the ground up. You control every detail, from stitching to rims.",
+                    icon: <IconSliders size={32} strokeWidth={1} />,
+                    color: "text-gray-600"
+                }
+            ];
+
+            return (
+                <div className="w-full min-h-screen bg-[#f3f4f6] pt-32 pb-32 flex flex-col items-center">
+                    <div className="container mx-auto px-6 md:px-12">
+                        
+                        <div className="text-center mb-16 fade-in">
+                            <h2 className="text-xs font-bold tracking-[0.3em] uppercase text-gray-400 mb-4">Start Your Journey</h2>
+                            <h1 className="text-4xl md:text-5xl font-serif italic text-black mb-6">Choose Your Path</h1>
+                            <p className="text-gray-600 max-w-lg mx-auto font-light text-lg">
+                                Every driver is unique. Select the configuration experience that suits you best.
+                            </p>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+                            {modes.map((mode, idx) => (
+                                <div 
+                                    key={mode.id} 
+                                    onClick={() => onSelectMode(mode.id)}
+                                    className={`bg-white p-10 rounded-xl border border-transparent hover:border-black/5 hover:shadow-2xl cursor-pointer transition-all duration-300 group fade-in fade-in-delay-${idx+1} relative overflow-hidden`}
+                                >
+                                    <div className="absolute top-0 left-0 w-full h-1 bg-black transform scale-x-0 group-hover:scale-x-100 transition-transform duration-500 origin-left"></div>
+
+                                    <div className={`w-16 h-16 rounded-full bg-gray-50 flex items-center justify-center mb-8 text-black group-hover:bg-black group-hover:text-white transition-colors duration-300`}>
+                                        {mode.icon}
+                                    </div>
+
+                                    <h3 className="text-xl font-medium mb-4 text-black">{mode.title}</h3>
+                                    <p className="text-gray-500 font-light leading-relaxed mb-8 group-hover:text-gray-700 transition-colors">
+                                        {mode.desc}
+                                    </p>
+
+                                    <div className="flex items-center text-sm font-bold uppercase tracking-widest mt-auto opacity-40 group-hover:opacity-100 transition-opacity">
+                                        Select
+                                        <IconArrowRight size={16} className="ml-2 group-hover:translate-x-2 transition-transform" />
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // --- Screen 3: Free Exploration (Updated with Compare Feature) ---
+        const FreeExplorationScreen = ({ reportStatus, onCopy, onCompare }) => {
+            const [selectedIds, setSelectedIds] = useState([]);
+
+            const cars = [
+                {
+                    id: 1,
+                    name: "Luxury GT Coupe",
+                    type: "Coupe",
+                    fuel: "Gasoline",
+                    power: "450 hp",
+                    accel: "3.8s",
+                    price: "1,450,000",
+                    image: "https://images.unsplash.com/photo-1542362567-b07e54358753?q=80&w=1600&auto=format&fit=crop", // silver2
+                    fallback: "https://images.unsplash.com/photo-1519078313888-5a8068170f8f?q=80&w=1015&auto=format&fit=crop"
+                },
+                {
+                    id: 2,
+                    name: "Luxury E-SUV",
+                    type: "SUV",
+                    fuel: "Electric",
+                    power: "520 hp",
+                    accel: "4.5s",
+                    price: "980,000",
+                    image: "https://images.unsplash.com/photo-1670069248043-db9433895793?q=80&w=2070&auto=format&fit=crop", // black2
+                    fallback: "https://images.unsplash.com/photo-1619767886558-efdc259cde1a?q=80&w=1600&auto=format&fit=crop"
+                },
+                {
+                    id: 3,
+                    name: "Luxury Sport Sedan",
+                    type: "Sedan",
+                    fuel: "Electric",
+                    power: "600 hp",
+                    accel: "3.2s",
+                    price: "1,120,000",
+                    image: "https://images.unsplash.com/photo-1619767886558-efdc259cde1a?q=80&w=1600&auto=format&fit=crop", // black1
+                    fallback: "https://images.unsplash.com/photo-1670069248043-db9433895793?q=80&w=2070&auto=format&fit=crop"
+                },
+                 {
+                    id: 4,
+                    name: "Luxury Cross Turismo",
+                    type: "Crossover",
+                    fuel: "Electric",
+                    power: "470 hp",
+                    accel: "4.1s",
+                    price: "890,000",
+                    image: "https://images.unsplash.com/photo-1670496137552-340a104a7ead?q=80&w=987&auto=format&fit=crop", // white1
+                    fallback: "https://images.unsplash.com/photo-1519078313888-5a8068170f8f?q=80&w=1015&auto=format&fit=crop"
+                },
+                 {
+                    id: 5,
+                    name: "Luxury Roadster",
+                    type: "Convertible",
+                    fuel: "Gasoline",
+                    power: "390 hp",
+                    accel: "4.2s",
+                    price: "1,250,000",
+                    image: "https://images.unsplash.com/photo-1519078313888-5a8068170f8f?q=80&w=1015&auto=format&fit=crop", // silver1
+                    fallback: "https://images.unsplash.com/photo-1542362567-b07e54358753?q=80&w=1600&auto=format&fit=crop"
+                },
+                 {
+                    id: 6,
+                    name: "Luxury Grand Tourer",
+                    type: "Sedan",
+                    fuel: "Hybrid",
+                    power: "560 hp",
+                    accel: "3.5s",
+                    price: "1,600,000",
+                    image: "https://images.unsplash.com/photo-1727795454376-01ce3138bbe2?q=80&w=1674&auto=format&fit=crop", // red
+                    fallback: "https://images.unsplash.com/photo-1614200187524-dc4b892acf16?q=80&w=2600&auto=format&fit=crop"
+                }
+            ];
+
+            const handleToggle = (e, id) => {
+                e.stopPropagation();
+                if (selectedIds.includes(id)) {
+                    setSelectedIds(prev => prev.filter(i => i !== id));
+                } else {
+                    if (selectedIds.length < 3) {
+                        setSelectedIds(prev => [...prev, id]);
+                    }
+                }
+            };
+
+            return (
+                <div className="w-full min-h-screen bg-[#f3f4f6] pt-28 pb-32">
+                    <div className="container mx-auto px-6 md:px-12">
+                        
+                        {/* Header */}
+                        <div className="flex flex-col md:flex-row justify-between items-end mb-12 fade-in">
+                            <div>
+                                <h2 className="text-xs font-bold tracking-[0.3em] uppercase text-gray-400 mb-3">Configuration Mode: Free Exploration</h2>
+                                <h1 className="text-3xl md:text-4xl font-serif italic text-black">Curated Excellence</h1>
+                                <p className="text-gray-500 mt-2 font-light">Popular configurations inspired by Norway's best selling specifications.</p>
+                            </div>
+                            
+                            {/* Filter / Sort (Visual Only) */}
+                            <div className="flex gap-4 mt-6 md:mt-0">
+                                <button className="text-xs font-bold uppercase tracking-widest border-b border-black pb-1">All Models</button>
+                                <button className="text-xs font-bold uppercase tracking-widest text-gray-400 border-b border-transparent pb-1 hover:text-black hover:border-gray-300 transition-all">Electric Only</button>
+                                <button className="text-xs font-bold uppercase tracking-widest text-gray-400 border-b border-transparent pb-1 hover:text-black hover:border-gray-300 transition-all">Under 1M NOK</button>
+                            </div>
+                        </div>
+
+                        {/* Cars Grid */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                            {cars.map((car, idx) => (
+                                <div 
+                                    key={car.id} 
+                                    className={`bg-white rounded-lg overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 group fade-in fade-in-delay-${(idx % 3) + 1} relative border ${selectedIds.includes(car.id) ? 'border-black ring-1 ring-black' : 'border-transparent'}`}
+                                >
+                                    {/* Image */}
+                                    <div className="relative h-64 overflow-hidden bg-gray-100">
+                                        <SmartImage 
+                                            id={`car-${car.id}`}
+                                            src={car.image} 
+                                            fallbackSrc={car.fallback}
+                                            alt={car.name} 
+                                            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                                            reportStatus={reportStatus}
+                                        />
+                                        <div className="absolute top-4 left-4">
+                                            <span className="bg-white/90 backdrop-blur text-black text-[10px] font-bold px-3 py-1 uppercase tracking-wider rounded-sm">
+                                                {car.type}
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    {/* Content */}
+                                    <div className="p-6">
+                                        <div className="flex justify-between items-start mb-2">
+                                            <h3 className="text-xl font-serif italic text-black">{car.name}</h3>
+                                            <div className="flex flex-col items-end">
+                                                <span className="text-xs text-gray-400 uppercase tracking-wider">From</span>
+                                                <span className="font-semibold text-sm whitespace-nowrap">{car.price} NOK</span>
+                                            </div>
+                                        </div>
+
+                                        {/* Specs */}
+                                        <div className="flex items-center gap-4 text-xs text-gray-500 my-4 border-t border-b border-gray-100 py-3">
+                                            <div className="flex items-center gap-1">
+                                                {car.fuel === 'Electric' ? <IconZap size={14} /> : <IconFuel size={14} />}
+                                                <span>{car.fuel}</span>
+                                            </div>
+                                            <div className="w-[1px] h-3 bg-gray-300"></div>
+                                            <span>{car.power}</span>
+                                            <div className="w-[1px] h-3 bg-gray-300"></div>
+                                            <span>0-100: {car.accel}</span>
+                                        </div>
+
+                                        {/* Actions */}
+                                        <div className="flex gap-3 mt-4 items-center justify-between">
+                                            <button 
+                                                onClick={onCopy}
+                                                className="flex-1 bg-black text-white text-xs font-bold uppercase tracking-widest py-3 rounded hover:bg-gray-800 transition-colors flex items-center justify-center gap-2">
+                                                <IconCopy size={14} />
+                                                Copy Config
+                                            </button>
+                                            
+                                            {/* Compare Checkbox */}
+                                            <div 
+                                                onClick={(e) => handleToggle(e, car.id)}
+                                                className={`w-10 h-10 border rounded flex items-center justify-center cursor-pointer transition-colors ml-2
+                                                ${selectedIds.includes(car.id) ? 'bg-black border-black text-white' : 'border-gray-200 hover:border-black text-transparent hover:text-gray-300'}`}
+                                            >
+                                                <IconCheck size={16} />
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Compare Floating Bar (Copied from Screen 9 logic) */}
+                    <div className={`fixed bottom-8 left-1/2 -translate-x-1/2 bg-black text-white px-6 py-3 rounded-full shadow-2xl flex items-center gap-6 transition-all duration-500 z-50 
+                        ${selectedIds.length > 0 ? 'translate-y-0 opacity-100' : 'translate-y-20 opacity-0'}`}>
+                        <span className="text-xs font-bold uppercase tracking-widest">{selectedIds.length} Selected</span>
+                        <div className="h-4 w-[1px] bg-white/20"></div>
+                        <button 
+                            onClick={() => setSelectedIds([])}
+                            className="text-xs text-gray-400 hover:text-white transition-colors uppercase tracking-widest"
+                        >
+                            Clear
+                        </button>
+                        <button 
+                            onClick={onCompare}
+                            className="bg-white text-black px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest hover:bg-gray-200 transition-colors flex items-center gap-2"
+                        >
+                            Compare <IconList size={14} />
+                        </button>
+                    </div>
+
+                </div>
+            );
+        };
+
+        // --- Helpers for Screen 4 ---
+
+        // Reorderable list item
+        const RankableItem = ({ item, index, moveItem, total }) => {
+            return (
+                <div className="flex items-center justify-between p-4 bg-white border border-gray-200 rounded-lg group hover:border-gray-400 transition-colors">
+                    <div className="flex items-center gap-4">
+                        <span className="w-6 h-6 rounded-full bg-black text-white flex items-center justify-center text-xs font-bold">{index + 1}</span>
+                        <span className="text-sm font-medium text-gray-800">{item}</span>
+                    </div>
+                    <div className="flex flex-col gap-1">
+                        <button 
+                            onClick={(e) => { e.stopPropagation(); moveItem(index, -1); }}
+                            disabled={index === 0}
+                            className={`p-1 rounded hover:bg-gray-100 ${index === 0 ? 'text-gray-300 cursor-not-allowed' : 'text-gray-600'}`}
+                        >
+                            <IconArrowUp size={14} />
+                        </button>
+                        <button 
+                            onClick={(e) => { e.stopPropagation(); moveItem(index, 1); }}
+                            disabled={index === total - 1}
+                            className={`p-1 rounded hover:bg-gray-100 ${index === total - 1 ? 'text-gray-300 cursor-not-allowed' : 'text-gray-600'}`}
+                        >
+                            <IconArrowDown size={14} />
+                        </button>
+                    </div>
+                </div>
+            );
+        };
+
+        // Smooth Slider (HTML Range)
+        const SmoothSlider = ({ label, min, max, value, displayValue, onChange, labels }) => {
+            return (
+                <div className="mb-8">
+                    <div className="flex justify-between mb-4">
+                        <label className="text-xs font-bold uppercase tracking-widest text-gray-500">{label}</label>
+                        <span className="text-sm font-bold text-black">{displayValue}</span>
+                    </div>
+                    <input 
+                        type="range" 
+                        min={min} 
+                        max={max} 
+                        step="1"
+                        value={value}
+                        onChange={(e) => onChange(parseInt(e.target.value))}
+                        className="w-full"
+                    />
+                    {labels && (
+                        <div className="flex justify-between mt-2 text-[10px] text-gray-400 uppercase tracking-wider">
+                            <span>{labels[0]}</span>
+                            <span>{labels[1]}</span>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        // Single Choice Group Helper
+        const SingleChoiceGroup = ({ label, options, selected, onSelect }) => (
+            <div className="mb-6">
+                <label className="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-4">{label}</label>
+                <div className="flex flex-col gap-3">
+                    {options.map(opt => (
+                        <button 
+                            key={opt}
+                            onClick={() => onSelect(opt)}
+                            className={`p-4 rounded-lg text-left text-sm font-medium transition-all duration-300 border flex items-center
+                            ${selected === opt 
+                                ? 'bg-black text-white border-black shadow-md' 
+                                : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400 hover:bg-gray-50'}`}
+                        >
+                            {opt}
+                        </button>
+                    ))}
+                </div>
+            </div>
+        );
+
+
+        // --- Screen 4: Intent-Based Configuration (REFACTORED) ---
+        const IntentConfigScreen = ({ onGetRecommendations }) => {
+            // State
+            const [powertrain, setPowertrain] = useState('Electric'); // Q1
+            const [q2, setQ2] = useState('Comfort and confidence for daily life'); // Q2
+            
+            // Sliders (Q3, Q4) - formerly Q5, Q6
+            const [budgetVal, setBudgetVal] = useState(850000); 
+            const [passengersVal, setPassengersVal] = useState(2);
+
+            // Single Choice (Q8, Q9) - formerly Q7, Q8
+            const [frequency, setFrequency] = useState('Regular daily use');
+            const [assistance, setAssistance] = useState('Helpful in traffic and highways');
+
+            // Ranking State (Q5, Q6, Q7) - formerly Q2, Q3, Q4
+            const [q5List, setQ5List] = useState(['Driving performance', 'Passenger comfort', 'Safety and assistance']);
+            const [q6List, setQ6List] = useState(['Ride comfort', 'Quiet cabin and smooth driving', 'Driver assistance on highways']);
+            const [q7List, setQ7List] = useState(['Driver in full control', 'Balanced control with smart assistance', 'System actively supporting the driver']);
+
+            const moveItem = (list, setList, index, direction) => {
+                const newList = [...list];
+                const newIndex = index + direction;
+                if (newIndex >= 0 && newIndex < list.length) {
+                    [newList[index], newList[newIndex]] = [newList[newIndex], newList[index]];
+                    setList(newList);
+                }
+            };
+
+            const formatBudget = (val) => {
+                if (val >= 1000000) return "Above 1,000,000 NOK";
+                return `${val.toLocaleString()} NOK`;
+            };
+
+            const formatPassengers = (val) => {
+                if (val === 1) return "Mostly 1 person";
+                if (val === 2) return "Usually 2 people";
+                return `Family use (${val} people)`;
+            };
+
+            return (
+                <div className="w-full min-h-screen bg-[#f8f9fa] pt-28 pb-32">
+                    <div className="container mx-auto px-6 md:px-12">
+                        
+                        <div className="text-center mb-16 fade-in">
+                            <h2 className="text-xs font-bold tracking-[0.3em] uppercase text-gray-400 mb-3">AI Personalization</h2>
+                            <h1 className="text-4xl md:text-5xl font-serif italic text-black mb-6">Design Your Lifestyle</h1>
+                            <p className="text-gray-500 max-w-lg mx-auto font-light text-lg">
+                                Answer a few questions to let our AI curate the perfect machine for your needs.
+                            </p>
+                        </div>
+
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 max-w-6xl mx-auto">
+                            
+                            {/* LEFT COLUMN: Preferences & Essentials */}
+                            <div className="space-y-8 fade-in fade-in-delay-1">
+                                
+                                {/* Section 1: Driving Preferences */}
+                                <div className="bg-white p-10 rounded-xl shadow-sm border border-gray-100">
+                                    <h3 className="text-xl font-serif italic mb-8 flex items-center gap-3 border-b border-gray-100 pb-4">
+                                        <span className="w-8 h-8 rounded-full bg-black text-white flex items-center justify-center text-sm not-italic font-sans font-bold">1</span>
+                                        Driving Preferences
+                                    </h3>
+                                    
+                                    {/* Q1: Powertrain */}
+                                    <SingleChoiceGroup 
+                                        label="Q1. Preferred Powertrain"
+                                        options={['Electric', 'Hybrid', 'Gasoline']}
+                                        selected={powertrain}
+                                        onSelect={setPowertrain}
+                                    />
+
+                                    {/* Q2: Emotional Anchor */}
+                                    <SingleChoiceGroup 
+                                        label="Q2. Primary Motivation"
+                                        options={[
+                                            'Pure driving pleasure', 
+                                            'Comfort and confidence for daily life', 
+                                            'Advanced technology'
+                                        ]}
+                                        selected={q2}
+                                        onSelect={setQ2}
+                                    />
+                                </div>
+
+                                {/* Section 2: The Essentials */}
+                                <div className="bg-white p-10 rounded-xl shadow-sm border border-gray-100">
+                                    <h3 className="text-xl font-serif italic mb-8 flex items-center gap-3 border-b border-gray-100 pb-4">
+                                        <span className="w-8 h-8 rounded-full bg-black text-white flex items-center justify-center text-sm not-italic font-sans font-bold">2</span>
+                                        The Essentials
+                                    </h3>
+
+                                    {/* Q3 Budget Slider */}
+                                    <SmoothSlider 
+                                        label="Q3. Budget Range" 
+                                        min={700000} 
+                                        max={1100000} 
+                                        value={budgetVal}
+                                        displayValue={formatBudget(budgetVal)}
+                                        onChange={setBudgetVal}
+                                        labels={['700k', '1M+']}
+                                    />
+
+                                    {/* Q4 Passengers Slider */}
+                                    <SmoothSlider 
+                                        label="Q4. Typical Passengers" 
+                                        min={1} 
+                                        max={5} 
+                                        value={passengersVal}
+                                        displayValue={formatPassengers(passengersVal)}
+                                        onChange={setPassengersVal}
+                                        labels={['Solo', 'Family']}
+                                    />
+                                </div>
+                            </div>
+
+                            {/* RIGHT COLUMN: Priorities & Habits */}
+                            <div className="space-y-8 fade-in fade-in-delay-2">
+                                
+                                {/* Section 3: What Matters Most (Ranking) */}
+                                <div className="bg-white p-10 rounded-xl shadow-sm border border-gray-100">
+                                    <h3 className="text-xl font-serif italic mb-6 flex items-center gap-3 border-b border-gray-100 pb-4">
+                                        <span className="w-8 h-8 rounded-full bg-black text-white flex items-center justify-center text-sm not-italic font-sans font-bold">3</span>
+                                        What Matters Most
+                                    </h3>
+                                    <p className="text-xs text-gray-400 mb-6 uppercase tracking-widest">Rank by importance (Top is highest)</p>
+
+                                    <div className="space-y-8">
+                                        <div>
+                                            <label className="block text-sm font-bold text-gray-800 mb-3">Q5. Daily Use</label>
+                                            <div className="space-y-2">
+                                                {q5List.map((item, i) => (
+                                                    <RankableItem key={item} item={item} index={i} total={q5List.length} moveItem={(idx, dir) => moveItem(q5List, setQ5List, idx, dir)} />
+                                                ))}
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-bold text-gray-800 mb-3">Q6. Long Trips</label>
+                                            <div className="space-y-2">
+                                                {q6List.map((item, i) => (
+                                                    <RankableItem key={item} item={item} index={i} total={q6List.length} moveItem={(idx, dir) => moveItem(q6List, setQ6List, idx, dir)} />
+                                                ))}
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-bold text-gray-800 mb-3">Q7. Driving Behavior</label>
+                                            <div className="space-y-2">
+                                                {q7List.map((item, i) => (
+                                                    <RankableItem key={item} item={item} index={i} total={q7List.length} moveItem={(idx, dir) => moveItem(q7List, setQ7List, idx, dir)} />
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Section 4: On The Road (Single Choice) */}
+                                <div className="bg-white p-10 rounded-xl shadow-sm border border-gray-100">
+                                    <h3 className="text-xl font-serif italic mb-8 flex items-center gap-3 border-b border-gray-100 pb-4">
+                                        <span className="w-8 h-8 rounded-full bg-black text-white flex items-center justify-center text-sm not-italic font-sans font-bold">4</span>
+                                        On The Road
+                                    </h3>
+
+                                    <SingleChoiceGroup 
+                                        label="Q8. Usage Frequency"
+                                        options={['Occasional / weekend', 'Regular daily use', 'Daily use with long trips']}
+                                        selected={frequency}
+                                        onSelect={setFrequency}
+                                    />
+
+                                    <SingleChoiceGroup 
+                                        label="Q9. Driving Assistance Preference"
+                                        options={['Minimal, only when necessary', 'Helpful in traffic and highways', 'Advanced assistance whenever possible']}
+                                        selected={assistance}
+                                        onSelect={setAssistance}
+                                    />
+                                </div>
+
+                            </div>
+                        </div>
+
+                        {/* CTA Section */}
+                        <div className="mt-16 text-center fade-in fade-in-delay-3">
+                            <button 
+                                onClick={onGetRecommendations}
+                                className="bg-black text-white h-16 px-12 rounded-full font-medium text-lg tracking-widest uppercase hover:bg-gray-800 transition-all transform hover:scale-105 shadow-2xl flex items-center gap-4 mx-auto group"
+                            >
+                                <IconSparkles size={20} />
+                                Get My Recommendations
+                                <IconArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
+                            </button>
+                            <p className="mt-4 text-xs text-gray-400">Based on your inputs, our AI will generate 3 tailored configurations.</p>
+                        </div>
+
+                    </div>
+                </div>
+            );
+        };
+
+        // --- Screen 5: Manual Configuration (UPDATED with Categories) ---
+        const ManualConfigScreen = ({ reportStatus, onSave }) => {
+            const [config, setConfig] = useState({
+                // Powertrain
+                engine: 'Electric',
+                transmission: 'Single Speed',
+                drivetrain: 'AWD',
+                performance: 'Standard',
+                // Exterior
+                color: 'Glacier White',
+                wheels: '20" Aero',
+                trim: 'Chrome',
+                lighting: 'Standard LED',
+                // Interior
+                seats: 'Sport Seats',
+                material: 'Vegan Leather',
+                dashboard: 'Carbon Fiber',
+                comfort: [],
+                // Safety
+                assist: 'Standard',
+                parking: 'Sensors + Rear Cam'
+            });
+
+            // UPDATED: Use object state to allow multiple open categories at once
+            // Defaulting to first category open
+            const [openCategories, setOpenCategories] = useState({ 0: true });
+
+            // Images map for dynamic color changing
+            const colorImages = {
+                // Verified White/Silver Porsche (User Specified for Speed) - white2
+                'Glacier White': 'https://images.unsplash.com/photo-1519078313888-5a8068170f8f?q=80&w=1015&auto=format&fit=crop',
+                // Verified Dark/Black - black2
+                'Deep Black': 'https://images.unsplash.com/photo-1670069248043-db9433895793?q=80&w=2070&auto=format&fit=crop',
+                // UPDATED: The specific Red Car you requested (ID: yT7cazuIIO4) from URL - red
+                'Crimson Red': 'https://images.unsplash.com/photo-1727795454376-01ce3138bbe2?q=80&w=1674&auto=format&fit=crop'
+            };
+
+            const fallbackCar = 'https://images.unsplash.com/photo-1503376763036-066120622c74?q=80&w=2600&auto=format&fit=crop';
+
+            const basePrice = 700000;
+            const [totalPrice, setTotalPrice] = useState(basePrice);
+
+            // Mock price calculation
+            useEffect(() => {
+                let price = basePrice;
+                if (config.performance === 'Ludicrous Mode') price += 150000;
+                if (config.color !== 'Glacier White') price += 12000;
+                if (config.wheels === '22" Turbine') price += 25000;
+                if (config.assist === 'Enhanced Autopilot') price += 50000;
+                if (config.material === 'Premium Leather') price += 30000;
+                setTotalPrice(price);
+            }, [config]);
+
+            const toggleCategory = (id) => {
+                setOpenCategories(prev => ({
+                    ...prev,
+                    [id]: !prev[id]
+                }));
+            };
+
+            const categories = [
+                {
+                    id: 0,
+                    title: "Powertrain",
+                    icon: <IconZap size={18} />,
+                    sections: [
+                        {
+                            label: "Engine / Motor",
+                            key: "engine",
+                            options: ["Electric", "Performance Electric", "Hybrid"]
+                        },
+                        {
+                            label: "Transmission",
+                            key: "transmission",
+                            options: ["Single Speed", "Sport Automatic"]
+                        },
+                        {
+                            label: "Drivetrain",
+                            key: "drivetrain",
+                            options: ["AWD", "RWD"]
+                        },
+                        {
+                            label: "Performance",
+                            key: "performance",
+                            options: ["Standard", "Ludicrous Mode"]
+                        }
+                    ]
+                },
+                {
+                    id: 1,
+                    title: "Exterior",
+                    icon: <IconCar size={18} />,
+                    sections: [
+                        {
+                            label: "Body Color",
+                            key: "color",
+                            type: "color",
+                            options: ["Glacier White", "Deep Black", "Crimson Red"]
+                        },
+                        {
+                            label: "Wheels & Tires",
+                            key: "wheels",
+                            options: ["20\" Aero", "21\" Sport", "22\" Turbine"]
+                        },
+                        {
+                            label: "Exterior Trim",
+                            key: "trim",
+                            options: ["Chrome", "Blacked Out", "Carbon Accent"]
+                        },
+                        {
+                            label: "Lighting",
+                            key: "lighting",
+                            options: ["Standard LED", "Matrix LED"]
+                        }
+                    ]
+                },
+                {
+                    id: 2,
+                    title: "Interior",
+                    icon: <IconUser size={18} />, // Using user icon for seat comfort
+                    sections: [
+                        {
+                            label: "Seats",
+                            key: "seats",
+                            options: ["Sport Seats", "Comfort Seats", "Race Bucket"]
+                        },
+                        {
+                            label: "Materials",
+                            key: "material",
+                            options: ["Vegan Leather", "Premium Leather", "Alcantara"]
+                        },
+                        {
+                            label: "Dashboard",
+                            key: "dashboard",
+                            options: ["Wood", "Carbon Fiber", "Aluminum"]
+                        }
+                    ]
+                },
+                {
+                    id: 3,
+                    title: "Safety & Assist",
+                    icon: <IconCheck size={18} />,
+                    sections: [
+                        {
+                            label: "Driver Assist",
+                            key: "assist",
+                            options: ["Standard", "Enhanced Autopilot"]
+                        },
+                        {
+                            label: "Parking",
+                            key: "parking",
+                            options: ["Sensors + Rear Cam", "360 Surround View"]
+                        }
+                    ]
+                }
+            ];
+
+            return (
+                <div className="w-full min-h-screen bg-white flex flex-col md:flex-row pt-20">
+                    
+                    {/* LEFT: Fixed Visualizer */}
+                    <div className="w-full md:w-2/3 h-[50vh] md:h-auto md:fixed md:left-0 md:top-0 md:bottom-0 bg-gray-100 relative z-0 md:pt-20">
+                         <div className="w-full h-full relative min-h-[300px]">
+                            <SmartImage 
+                                id="manual-hero"
+                                src={colorImages[config.color]} 
+                                fallbackSrc={fallbackCar}
+                                alt={`Luxury Car in ${config.color}`} 
+                                className="w-full h-full object-cover object-center"
+                                reportStatus={reportStatus}
+                            />
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent pointer-events-none"></div>
+                            
+                            <div className="absolute bottom-10 left-10 text-white fade-in z-20">
+                                <h2 className="text-3xl font-serif italic mb-1">{config.engine} Model</h2>
+                                <p className="text-sm font-light tracking-widest uppercase opacity-80">{config.color} • {config.wheels}</p>
+                            </div>
+                         </div>
+                    </div>
+
+                    {/* RIGHT: Scrollable Configuration Panel */}
+                    <div className="w-full md:w-1/3 ml-auto bg-white min-h-screen z-10 shadow-2xl pb-32 flex flex-col">
+                        <div className="p-8 md:p-12 border-b border-gray-100 relative">
+                            
+                            <h1 className="text-2xl font-serif italic mb-2">Configure Your Vehicle</h1>
+                            <div className="flex items-center gap-2">
+                                <p className="text-xs text-gray-400 uppercase tracking-widest">Estimated Delivery: Oct 2024</p>
+                            </div>
+                        </div>
+
+                        <div className="flex-1 overflow-y-auto">
+                            {categories.map((cat) => (
+                                <div key={cat.id} className="border-b border-gray-100">
+                                    <button 
+                                        onClick={() => toggleCategory(cat.id)}
+                                        className="w-full p-6 flex justify-between items-center hover:bg-gray-50 transition-colors"
+                                    >
+                                        <div className="flex items-center gap-3">
+                                            <span className={`p-2 rounded-full ${openCategories[cat.id] ? 'bg-black text-white' : 'bg-gray-100 text-gray-500'}`}>
+                                                {cat.icon}
+                                            </span>
+                                            <span className="font-bold text-sm uppercase tracking-widest text-gray-800">{cat.title}</span>
+                                        </div>
+                                        {openCategories[cat.id] ? <IconChevronUp size={16} /> : <IconChevronDown size={16} />}
+                                    </button>
+
+                                    {/* Accordion Content */}
+                                    <div className={`${openCategories[cat.id] ? 'block' : 'hidden'}`}>
+                                        <div className="p-6 pt-0 space-y-6">
+                                            {cat.sections.map((section) => (
+                                                <div key={section.key}>
+                                                    <h4 className="text-xs text-gray-400 font-medium mb-3 uppercase tracking-wider">{section.label}</h4>
+                                                    
+                                                    {section.type === 'color' ? (
+                                                        <div className="flex gap-4">
+                                                            {section.options.map(opt => (
+                                                                <button 
+                                                                    key={opt}
+                                                                    onClick={() => setConfig({...config, [section.key]: opt})}
+                                                                    className={`w-10 h-10 rounded-full border-2 transition-transform hover:scale-110 
+                                                                    ${config[section.key] === opt ? 'border-black scale-110' : 'border-gray-200'}
+                                                                    ${opt === 'Glacier White' ? 'bg-gray-100' : ''}
+                                                                    ${opt === 'Deep Black' ? 'bg-black' : ''}
+                                                                    ${opt === 'Crimson Red' ? 'bg-red-800' : ''}`}
+                                                                    title={opt}
+                                                                />
+                                                            ))}
+                                                        </div>
+                                                    ) : (
+                                                        <div className="grid grid-cols-1 gap-2">
+                                                            {section.options.map(opt => (
+                                                                <button 
+                                                                    key={opt}
+                                                                    onClick={() => setConfig({...config, [section.key]: opt})}
+                                                                    className={`text-left px-4 py-3 rounded text-sm transition-colors border
+                                                                    ${config[section.key] === opt 
+                                                                        ? 'border-black bg-black text-white' 
+                                                                        : 'border-gray-100 bg-white text-gray-600 hover:border-gray-300'}`}
+                                                                >
+                                                                    {opt}
+                                                                </button>
+                                                            ))}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+
+                        {/* Sticky Footer */}
+                        <div className="sticky bottom-0 bg-white border-t border-gray-200 p-6 md:p-8 shadow-[0_-10px_40px_rgba(0,0,0,0.05)]">
+                             <div className="flex justify-between items-end mb-4">
+                                <span className="text-xs font-bold uppercase tracking-widest text-gray-500">Total Price</span>
+                                <span className="text-2xl font-serif italic">{totalPrice.toLocaleString()} NOK</span>
+                             </div>
+                             <button 
+                                onClick={onSave}
+                                className="w-full bg-black text-white h-14 rounded-full font-medium text-sm tracking-widest uppercase hover:bg-gray-800 transition-all flex items-center justify-center gap-3">
+                                Save Configuration
+                                <IconArrowRight size={18} />
+                             </button>
+                        </div>
+                    </div>
+
+                </div>
+            );
+        };
+
+        // --- Screen 6: Configuration Result & Compare ---
+        const ResultsScreen = ({ reportStatus, onSelectConfig }) => {
+            const [viewMode, setViewMode] = useState('compare'); // Default to compare per request
+
+            const recommendations = [
+                {
+                    id: 1,
+                    title: "Your Match: Performance Edition",
+                    type: "Electric",
+                    color: "Crimson Red",
+                    price: "1,250,000",
+                    specs: { engine: "Dual Motor", accel: "3.2s", range: "500 km", weight: "2100 kg" },
+                    image: "https://images.unsplash.com/photo-1727795454376-01ce3138bbe2?q=80&w=1674&auto=format&fit=crop", // red
+                    fallback: "https://images.unsplash.com/photo-1614200187524-dc4b892acf16?q=80&w=2600&auto=format&fit=crop",
+                    highlight: true
+                },
+                {
+                    id: 2,
+                    title: "Alternative: Long Range",
+                    type: "Electric",
+                    color: "Glacier White",
+                    price: "980,000",
+                    specs: { engine: "Single Motor", accel: "5.1s", range: "650 km", weight: "1900 kg" },
+                    image: "https://images.unsplash.com/photo-1519078313888-5a8068170f8f?q=80&w=1015&auto=format&fit=crop", // white1
+                    fallback: "https://images.unsplash.com/photo-1503376763036-066120622c74?q=80&w=2600&auto=format&fit=crop",
+                    highlight: false
+                },
+                {
+                    id: 3,
+                    title: "Alternative: Executive Hybrid",
+                    type: "Hybrid",
+                    color: "Deep Black",
+                    price: "1,100,000",
+                    specs: { engine: "V6 Hybrid", accel: "4.5s", range: "800 km", weight: "2200 kg" },
+                    image: "https://images.unsplash.com/photo-1619767886558-efdc259cde1a?q=80&w=1600&auto=format&fit=crop", // black1
+                    fallback: "https://images.unsplash.com/photo-1503376763036-066120622c74?q=80&w=2600&auto=format&fit=crop",
+                    highlight: false
+                }
+            ];
+
+            return (
+                <div className="w-full min-h-screen bg-[#f8f9fa] pt-28 pb-32">
+                    <div className="container mx-auto px-6 md:px-12">
+                        
+                        <div className="flex flex-col md:flex-row justify-between items-end mb-12 fade-in relative">
+                            <div>
+                                <h2 className="text-xs font-bold tracking-[0.3em] uppercase text-gray-400 mb-3">Your Results</h2>
+                                <h1 className="text-3xl md:text-4xl font-serif italic text-black">Perfectly Tailored</h1>
+                            </div>
+                        </div>
+
+                        {/* COMPARE VIEW - Table Only */}
+                        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden fade-in">
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-left border-collapse">
+                                    <thead>
+                                        <tr>
+                                            <th className="p-6 border-b border-gray-100 bg-gray-50 w-1/4"></th>
+                                            {recommendations.map(car => (
+                                                <th key={car.id} className="p-6 border-b border-gray-100 min-w-[200px]">
+                                                    <div className="h-32 mb-4 overflow-hidden rounded bg-gray-100">
+                                                        <SmartImage 
+                                                            id={`thumb-${car.id}`}
+                                                            src={car.image} 
+                                                            fallbackSrc={car.fallback}
+                                                            alt={car.title} 
+                                                            className="w-full h-full object-cover"
+                                                            reportStatus={reportStatus}
+                                                        />
+                                                    </div>
+                                                    <h3 className="font-serif italic text-lg">{car.title}</h3>
+                                                    <p className="text-xs text-gray-400 uppercase tracking-widest mt-1">{car.price} NOK</p>
+                                                </th>
+                                            ))}
+                                        </tr>
+                                    </thead>
+                                    <tbody className="text-sm">
+                                        {[
+                                            { label: "Engine", key: "engine" },
+                                            { label: "0-100 km/h", key: "accel", highlight: true },
+                                            { label: "Range", key: "range" },
+                                            { label: "Weight", key: "weight" },
+                                            { label: "Type", key: "type" }
+                                        ].map((row, rowIdx) => (
+                                            <tr key={row.label} className={rowIdx % 2 === 0 ? "bg-white" : "bg-gray-50/50"}>
+                                                <td className="p-6 font-bold text-gray-500 uppercase text-xs tracking-widest border-r border-gray-100">
+                                                    {row.label}
+                                                </td>
+                                                {recommendations.map(car => (
+                                                    <td key={car.id} className={`p-6 border-r border-gray-100 last:border-r-0 ${row.highlight && car.id === 1 ? 'font-bold text-black bg-green-50/30' : 'text-gray-600'}`}>
+                                                        {row.key === 'type' ? car.type : car.specs[row.key]}
+                                                    </td>
+                                                ))}
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                    <tfoot>
+                                        <tr>
+                                            <td className="p-6 border-t border-gray-100"></td>
+                                            {recommendations.map(car => (
+                                                <td key={car.id} className="p-6 border-t border-gray-100">
+                                                    <button 
+                                                        onClick={onSelectConfig}
+                                                        className="w-full bg-black text-white h-10 rounded-full font-medium text-xs tracking-widest uppercase hover:bg-gray-800 transition-all">
+                                                        Select
+                                                    </button>
+                                                </td>
+                                            ))}
+                                        </tr>
+                                    </tfoot>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div className="mt-12 text-center fade-in fade-in-delay-3">
+                             <button className="text-xs text-gray-400 uppercase tracking-widest border-b border-transparent hover:border-gray-300 hover:text-black transition-all pb-1">
+                                Proceed to Preview
+                             </button>
+                        </div>
+
+                    </div>
+                </div>
+            );
+        };
+
+        // --- Screen 7: Configuration Preview ---
+        const PreviewScreen = ({ reportStatus, onEdit, onComplete }) => {
+            const savedConfig = {
+                title: "Model S Performance",
+                price: "1,250,000 NOK",
+                color: "Crimson Red",
+                powertrain: "Electric Dual Motor",
+                wheels: "20\" Aero",
+                interior: "Vegan Leather / Carbon Fiber",
+                image: "https://images.unsplash.com/photo-1727795454376-01ce3138bbe2?q=80&w=1674&auto=format&fit=crop", // red
+                fallback: "https://images.unsplash.com/photo-1614200187524-dc4b892acf16?q=80&w=2600&auto=format&fit=crop"
+            };
+
+            return (
+                <div className="w-full min-h-screen bg-white pt-24 pb-32">
+                    <div className="container mx-auto px-6 md:px-12">
+                        
+                        {/* Header */}
+                        <div className="flex justify-between items-center mb-8 fade-in relative">
+                            <div>
+                                <h2 className="text-xs font-bold tracking-[0.3em] uppercase text-gray-400 mb-2">Configuration Saved</h2>
+                                <h1 className="text-3xl md:text-4xl font-serif italic text-black">Antoni Gaudi's dream car</h1>
+                            </div>
+                            <button 
+                                onClick={onEdit}
+                                className="hidden md:flex items-center gap-2 text-xs font-bold uppercase tracking-widest hover:text-gray-600 transition-colors"
+                            >
+                                <IconEdit size={16} /> Edit Configuration
+                            </button>
+                        </div>
+
+                        {/* Main Content Layout */}
+                        <div className="flex flex-col lg:flex-row gap-12">
+                            
+                            {/* Left: Visuals */}
+                            <div className="w-full lg:w-2/3 space-y-6 fade-in fade-in-delay-1">
+                                <div className="aspect-video w-full rounded-xl overflow-hidden bg-gray-100 shadow-lg relative group">
+                                    <SmartImage 
+                                        id="preview-hero"
+                                        src={savedConfig.image} 
+                                        fallbackSrc={savedConfig.fallback}
+                                        alt={savedConfig.title} 
+                                        className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105"
+                                        reportStatus={reportStatus}
+                                    />
+                                    <div className="absolute bottom-6 left-6">
+                                        <span className="bg-white/90 backdrop-blur text-black text-[10px] font-bold px-3 py-1 uppercase tracking-wider rounded-sm">
+                                            {savedConfig.color}
+                                        </span>
+                                    </div>
+                                </div>
+                                
+                                {/* Mobile-friendly Share Section */}
+                                <div className="bg-gray-50 p-6 rounded-xl flex flex-col sm:flex-row items-center justify-between gap-6 border border-gray-100">
+                                    <div className="flex items-center gap-4">
+                                        <div className="w-16 h-16 bg-white p-1 rounded shadow-sm flex items-center justify-center">
+                                            <IconQrCode size={40} className="text-black" />
+                                        </div>
+                                        <div>
+                                            <h4 className="text-sm font-bold text-black uppercase tracking-wide">Share Design</h4>
+                                            <p className="text-xs text-gray-500">Scan to view on mobile or share link.</p>
+                                        </div>
+                                    </div>
+                                    <div className="flex gap-3 w-full sm:w-auto">
+                                        <button className="flex-1 sm:flex-none px-4 py-2 bg-white border border-gray-200 rounded text-xs font-bold uppercase tracking-widest hover:bg-gray-100 flex items-center justify-center gap-2">
+                                            <IconCopy size={14} /> Copy
+                                        </button>
+                                        <button className="flex-1 sm:flex-none px-4 py-2 bg-white border border-gray-200 rounded text-xs font-bold uppercase tracking-widest hover:bg-gray-100 flex items-center justify-center gap-2">
+                                            <IconShare size={14} /> Send
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Right: Specs & Price */}
+                            <div className="w-full lg:w-1/3 fade-in fade-in-delay-2">
+                                <div className="bg-white p-8 rounded-xl shadow-[0_20px_50px_-12px_rgba(0,0,0,0.1)] border border-gray-100 sticky top-28">
+                                    <h3 className="text-xl font-serif italic mb-6">Specification Summary</h3>
+                                    
+                                    <div className="space-y-4 mb-8">
+                                        <div className="flex justify-between items-center py-3 border-b border-gray-50">
+                                            <span className="text-xs text-gray-500 uppercase tracking-widest">Powertrain</span>
+                                            <span className="text-sm font-medium text-right">{savedConfig.powertrain}</span>
+                                        </div>
+                                        <div className="flex justify-between items-center py-3 border-b border-gray-50">
+                                            <span className="text-xs text-gray-500 uppercase tracking-widest">Exterior</span>
+                                            <span className="text-sm font-medium text-right">{savedConfig.color}</span>
+                                        </div>
+                                        <div className="flex justify-between items-center py-3 border-b border-gray-50">
+                                            <span className="text-xs text-gray-500 uppercase tracking-widest">Wheels</span>
+                                            <span className="text-sm font-medium text-right">{savedConfig.wheels}</span>
+                                        </div>
+                                        <div className="flex justify-between items-center py-3 border-b border-gray-50">
+                                            <span className="text-xs text-gray-500 uppercase tracking-widest">Interior</span>
+                                            <span className="text-sm font-medium text-right">{savedConfig.interior}</span>
+                                        </div>
+                                    </div>
+
+                                    <div className="bg-gray-900 text-white p-6 rounded-lg mb-6">
+                                        <div className="flex justify-between items-end mb-1">
+                                            <span className="text-xs font-bold uppercase tracking-widest opacity-60">Total Price</span>
+                                            <span className="text-2xl font-serif italic">{savedConfig.price}</span>
+                                        </div>
+                                        <p className="text-[10px] opacity-40 text-right">Including taxes and fees</p>
+                                    </div>
+
+                                    <button 
+                                        onClick={onComplete} 
+                                        className="w-full bg-black text-white h-14 rounded-full font-medium text-sm tracking-widest uppercase hover:bg-gray-800 transition-all shadow-xl flex items-center justify-center gap-3 group"
+                                    >
+                                        Proceed to Order
+                                        <IconArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
+                                    </button>
+                                    
+                                    <div className="mt-4 text-center md:hidden">
+                                        <button onClick={onEdit} className="text-xs text-gray-400 border-b border-gray-200 pb-1">Edit Configuration</button>
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // --- Screen 8: Configuration Complete (Refined) ---
+        const CompleteScreen = ({ reportStatus, onFinishLater }) => {
+            const configCode = "LUX-8821-X";
+            
+            return (
+                <div className="w-full min-h-screen bg-white pt-24 pb-32">
+                    <div className="container mx-auto px-6 md:px-12">
+                        
+                        <div className="text-center mb-12 fade-in">
+                            <div className="inline-flex items-center justify-center w-12 h-12 bg-black text-white rounded-full mb-4 shadow-lg">
+                                <IconCheck size={20} />
+                            </div>
+                            <h1 className="text-3xl md:text-4xl font-serif italic text-black mb-2">Your configuration is ready</h1>
+                            <p className="text-gray-500 max-w-lg mx-auto font-light text-sm">
+                                Configuration saved. Code: <span className="font-bold text-black">{configCode}</span>
+                            </p>
+                        </div>
+
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 max-w-6xl mx-auto">
+                            
+                            {/* Left Column: Transaction Details */}
+                            <div className="space-y-8 fade-in fade-in-delay-1">
+                                
+                                {/* Save Card */}
+                                <div className="space-y-4">
+                                    <h3 className="text-sm font-bold uppercase tracking-widest text-black border-b border-gray-100 pb-2">Save & Share</h3>
+                                    
+                                    <div className="flex gap-2">
+                                        <div className="flex-1 bg-gray-50 border border-gray-100 rounded px-4 py-3 text-sm font-mono text-gray-600 flex items-center justify-between">
+                                            <span>https://luxury.auto/c/{configCode}</span>
+                                            <IconCopy size={14} className="text-gray-400 cursor-pointer hover:text-black" />
+                                        </div>
+                                    </div>
+
+                                    <div className="flex gap-2">
+                                        <input 
+                                            type="email" 
+                                            placeholder="Email address" 
+                                            className="flex-1 bg-white border border-gray-200 rounded px-4 py-3 text-sm focus:outline-none focus:border-black transition-colors"
+                                        />
+                                        <button className="px-6 py-3 bg-black text-white rounded text-xs font-bold uppercase tracking-widest hover:bg-gray-800 transition-colors">
+                                            Send
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {/* Notice */}
+                                <div className="pl-4 border-l-4 border-black space-y-1">
+                                    <h4 className="text-xs font-bold uppercase tracking-widest text-black">Production Notice</h4>
+                                    <p className="text-sm text-gray-500 leading-relaxed max-w-md">
+                                        Custom production for this specification typically requires <strong>30–60 days</strong>. 
+                                        No exact matches found at local dealerships.
+                                    </p>
+                                </div>
+
+                            </div>
+
+                            {/* Right Column: Dealership & Stock */}
+                            <div className="bg-gray-50 p-8 rounded-xl border border-gray-100 fade-in fade-in-delay-2 flex flex-col justify-between">
+                                <div>
+                                    <div className="mb-8">
+                                        <h3 className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-4">Your Local Dealership</h3>
+                                        <div className="font-serif italic text-2xl mb-1">Oslo Sentrum Luxury</div>
+                                        <div className="flex items-center gap-2 text-sm text-gray-500 mb-6">
+                                            <IconMapPin size={14} />
+                                            <span>Dronning Eufemias gate 8, 0191 Oslo</span>
+                                        </div>
+
+                                        <h4 className="text-xs font-bold uppercase tracking-widest text-black mb-4">Available Now (Similar)</h4>
+                                        <div className="space-y-3">
+                                            {[
+                                                { name: "Model S Long Range", color: "Silver", match: "98%", img: "https://images.unsplash.com/photo-1519078313888-5a8068170f8f?q=80&w=1015&auto=format&fit=crop" },
+                                                { name: "Model S Plaid", color: "Black", match: "92%", img: "https://images.unsplash.com/photo-1619767886558-efdc259cde1a?q=80&w=1600&auto=format&fit=crop" }
+                                            ].map((car, idx) => (
+                                                <div key={idx} className="flex gap-4 group cursor-pointer bg-white p-3 rounded-lg border border-gray-100 hover:border-black transition-all shadow-sm">
+                                                    <div className="w-20 h-14 rounded overflow-hidden bg-gray-200 relative flex-shrink-0">
+                                                        <SmartImage src={car.img} alt={car.name} className="w-full h-full object-cover object-center" reportStatus={reportStatus} />
+                                                    </div>
+                                                    <div className="flex-1 flex flex-col justify-center min-w-0">
+                                                        <div className="flex justify-between items-start">
+                                                            <span className="text-sm font-medium text-black truncate pr-2">{car.name}</span>
+                                                            <span className="text-[10px] font-bold bg-gray-100 text-black px-2 py-0.5 rounded-full whitespace-nowrap">{car.match} Match</span>
+                                                        </div>
+                                                        <div className="text-xs text-gray-400 mt-1 truncate">{car.color} • In Stock</div>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="space-y-3 pt-6 border-t border-gray-200">
+                                    <button className="w-full bg-black text-white h-12 rounded-full font-medium text-xs tracking-widest uppercase hover:bg-gray-800 transition-all flex items-center justify-center gap-2 shadow-lg">
+                                        Book Test Drive <IconArrowRight size={14} />
+                                    </button>
+                                    <button 
+                                        onClick={onFinishLater}
+                                        className="w-full bg-transparent text-gray-400 h-10 font-medium text-[10px] tracking-widest uppercase hover:text-black transition-all"
+                                    >
+                                        SKIP FOR NOW
+                                    </button>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // --- Screen 9: My Configurations (New) ---
+        const MyConfigurationsScreen = ({ onPreview, onCreateNew, onCompare, reportStatus }) => {
+            const [selectedIds, setSelectedIds] = useState([]);
+            
+            // Mock Data
+            const myConfigs = [
+                {
+                    model: "Luxury GT Coupe",
+                    items: [
+                        { id: 101, name: "GT Coupe Performance", date: "Oct 24, 2024", status: "Ordered", price: "1,450,000 NOK", img: "https://images.unsplash.com/photo-1727795454376-01ce3138bbe2?q=80&w=1674&auto=format&fit=crop" }, // Red
+                        { id: 102, name: "GT Coupe Touring", date: "Sep 15, 2024", status: "Draft", price: "1,320,000 NOK", img: "https://images.unsplash.com/photo-1542362567-b07e54358753?q=80&w=1600&auto=format&fit=crop" }, // Silver2
+                        { id: 103, name: "GT Coupe Sport", date: "Aug 10, 2024", status: "Draft", price: "1,380,000 NOK", img: "https://images.unsplash.com/photo-1670496137552-340a104a7ead?q=80&w=987&auto=format&fit=crop" } // white1 - Added for testing 3 items
+                    ]
+                },
+                {
+                    model: "Luxury Sport Sedan",
+                    items: [
+                        { id: 201, name: "Sport Sedan Executive", date: "Oct 20, 2024", status: "Shared", price: "1,100,000 NOK", img: "https://images.unsplash.com/photo-1670069248043-db9433895793?q=80&w=2070&auto=format&fit=crop" } // Black2
+                    ]
+                }
+            ];
+
+            const handleToggle = (e, id) => {
+                e.stopPropagation();
+                if (selectedIds.includes(id)) {
+                    setSelectedIds(prev => prev.filter(i => i !== id));
+                } else {
+                    if (selectedIds.length < 3) {
+                        setSelectedIds(prev => [...prev, id]);
+                    }
+                }
+            };
+
+            return (
+                <div className="w-full min-h-screen bg-white pt-24 pb-32 relative">
+                    <div className="container mx-auto px-6 md:px-12">
+                        
+                        <div className="flex justify-between items-end mb-12 fade-in">
+                            <div>
+                                <h2 className="text-xs font-bold tracking-[0.3em] uppercase text-gray-400 mb-3">My Garage</h2>
+                                <h1 className="text-3xl md:text-4xl font-serif italic text-black">Saved Configurations</h1>
+                            </div>
+                            <button 
+                                onClick={onCreateNew}
+                                className="text-xs font-bold uppercase tracking-widest border-b border-black pb-1 hover:opacity-60 transition-opacity"
+                            >
+                                Create New
+                            </button>
+                        </div>
+
+                        <div className="space-y-16">
+                            {myConfigs.map((group, idx) => (
+                                <div key={idx} className={`fade-in fade-in-delay-${idx+1}`}>
+                                    <h3 className="text-sm font-bold uppercase tracking-widest text-gray-900 mb-6 border-b border-gray-100 pb-2">{group.model}</h3>
+                                    
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                                        {group.items.map(item => (
+                                            <div 
+                                                key={item.id} 
+                                                onClick={() => onPreview(item.id)}
+                                                className={`group bg-white border rounded-xl overflow-hidden hover:shadow-xl transition-all cursor-pointer relative 
+                                                ${selectedIds.includes(item.id) ? 'border-black ring-1 ring-black' : 'border-gray-100'}`}
+                                            >
+                                                <div className="h-48 overflow-hidden bg-gray-100 relative">
+                                                    <SmartImage 
+                                                        src={item.img} 
+                                                        alt={item.name} 
+                                                        className="w-full h-full object-cover object-center transition-transform duration-700 group-hover:scale-105"
+                                                        reportStatus={reportStatus}
+                                                    />
+                                                    <div className="absolute top-4 right-4">
+                                                        <span className={`text-[10px] font-bold px-2 py-1 uppercase tracking-wider rounded-sm 
+                                                            ${item.status === 'Ordered' ? 'bg-black text-white' : 
+                                                              item.status === 'Shared' ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-600'}`}>
+                                                            {item.status}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                                
+                                                <div className="p-6">
+                                                    <div className="flex justify-between items-start mb-2">
+                                                        <h4 className="font-medium text-lg text-black group-hover:text-gray-600 transition-colors">{item.name}</h4>
+                                                    </div>
+                                                    <p className="text-xs text-gray-400 mb-4">Last updated: {item.date}</p>
+                                                    <div className="flex justify-between items-center border-t border-gray-50 pt-4">
+                                                        <span className="font-serif italic text-sm">{item.price}</span>
+                                                        
+                                                        {/* Actions & Checkbox */}
+                                                        <div className="flex items-center gap-3">
+                                                            <div className="flex gap-2 mr-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                                <button className="text-gray-400 hover:text-black transition-colors p-1" title="Edit" onClick={(e)=>e.stopPropagation()}><IconEdit size={14}/></button>
+                                                                <button className="text-gray-400 hover:text-black transition-colors p-1" title="Share" onClick={(e)=>e.stopPropagation()}><IconShare size={14}/></button>
+                                                                <button className="text-gray-400 hover:text-black transition-colors" title="Compare"><IconList size={14}/></button>
+                                                            </div>
+                                                            <div 
+                                                                onClick={(e) => handleToggle(e, item.id)}
+                                                                className={`w-5 h-5 border flex items-center justify-center rounded cursor-pointer transition-colors
+                                                                ${selectedIds.includes(item.id) ? 'bg-black border-black text-white' : 'border-gray-300 hover:border-black'}`}
+                                                            >
+                                                                {selectedIds.includes(item.id) && <IconCheck size={12} />}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+
+                    </div>
+
+                    {/* Compare Floating Bar */}
+                    <div className={`fixed bottom-8 left-1/2 -translate-x-1/2 bg-black text-white px-6 py-3 rounded-full shadow-2xl flex items-center gap-6 transition-all duration-500 z-50 
+                        ${selectedIds.length > 0 ? 'translate-y-0 opacity-100' : 'translate-y-20 opacity-0'}`}>
+                        <span className="text-xs font-bold uppercase tracking-widest">{selectedIds.length} Selected</span>
+                        <div className="h-4 w-[1px] bg-white/20"></div>
+                        <button 
+                            onClick={() => setSelectedIds([])}
+                            className="text-xs text-gray-400 hover:text-white transition-colors uppercase tracking-widest"
+                        >
+                            Clear
+                        </button>
+                        <button 
+                            onClick={onCompare}
+                            className="bg-white text-black px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest hover:bg-gray-200 transition-colors flex items-center gap-2"
+                        >
+                            Compare <IconList size={14} />
+                        </button>
+                    </div>
+
+                </div>
+            );
+        };
+
+        // --- Main App Component ---
+        const App = () => {
+            const [scrolled, setScrolled] = useState(false);
+            const [currentScreen, setCurrentScreen] = useState('home'); 
+            const { imageStatuses, reportStatus } = useImageMonitor();
+
+            // Scroll to top on screen change
+            useEffect(() => {
+                window.scrollTo(0, 0);
+            }, [currentScreen]);
+
+            useEffect(() => {
+                const handleScroll = () => {
+                    setScrolled(window.scrollY > 50);
+                };
+                window.addEventListener('scroll', handleScroll);
+                return () => window.removeEventListener('scroll', handleScroll);
+            }, []);
+
+            // Handler for progress bar step clicks
+            const handleStepClick = (stepId) => {
+                if (stepId === 1) {
+                    setCurrentScreen('mode-selection');
+                }
+            };
+
+            const renderScreen = () => {
+                switch(currentScreen) {
+                    case 'home':
+                        // Pass reportStatus to HomeScreen for the new image
+                        return <HomeScreen onStartConfig={() => setCurrentScreen('mode-selection')} onDiscover={() => setCurrentScreen('free-exploration')} reportStatus={reportStatus} />;
+                    case 'mode-selection':
+                        return <ModeSelectionScreen onSelectMode={(mode) => {
+                            if(mode === 'free') setCurrentScreen('free-exploration');
+                            if(mode === 'intent') setCurrentScreen('intent-config');
+                            if(mode === 'manual') setCurrentScreen('manual-config');
+                        }} />;
+                    case 'free-exploration':
+                        return <FreeExplorationScreen reportStatus={reportStatus} onCopy={() => setCurrentScreen('preview')} onCompare={() => setCurrentScreen('results')} />;
+                    case 'intent-config':
+                        return <IntentConfigScreen onGetRecommendations={() => setCurrentScreen('results')} />;
+                    case 'manual-config':
+                        return <ManualConfigScreen reportStatus={reportStatus} onSave={() => setCurrentScreen('preview')} />;
+                    case 'results':
+                        return <ResultsScreen reportStatus={reportStatus} onSelectConfig={() => setCurrentScreen('preview')} />;
+                    case 'preview':
+                        return <PreviewScreen reportStatus={reportStatus} onEdit={() => setCurrentScreen('manual-config')} onComplete={() => setCurrentScreen('complete')} />;
+                    case 'complete':
+                        return <CompleteScreen reportStatus={reportStatus} onFinishLater={() => setCurrentScreen('my-configurations')} />;
+                    case 'my-configurations':
+                        return <MyConfigurationsScreen 
+                            reportStatus={reportStatus} 
+                            onPreview={() => setCurrentScreen('preview')} 
+                            onCreateNew={() => setCurrentScreen('mode-selection')}
+                            onCompare={() => setCurrentScreen('results')}
+                        />;
+                    default:
+                        return <HomeScreen />;
+                }
+            };
+
+            const getActiveStep = () => {
+                if (currentScreen === 'home') return 0;
+                if (currentScreen === 'mode-selection') return 1;
+                if (currentScreen === 'free-exploration' || currentScreen === 'intent-config' || currentScreen === 'manual-config') return 2;
+                if (currentScreen === 'results') return 3; 
+                if (currentScreen === 'preview') return 4;
+                if (currentScreen === 'complete') return 5;
+                if (currentScreen === 'my-configurations') return -1; // Hide progress bar
+                return 0;
+            };
+
+            return (
+                <div className="min-h-screen flex flex-col relative overflow-hidden bg-[#f3f4f6]">
+                    
+                    <Navigation scrolled={scrolled} onLogoClick={() => setCurrentScreen('home')} />
+
+                    {renderScreen()}
+
+                    {/* Progress Indicator - Hidden for My Configurations */}
+                    {currentScreen !== 'home' && currentScreen !== 'my-configurations' && (
+                        <ProgressIndicator 
+                            currentStepId={getActiveStep()} 
+                            onStepClick={handleStepClick}
+                        />
+                    )}
+
+                    <DevSwitcher 
+                        currentScreen={currentScreen} 
+                        setScreen={setCurrentScreen} 
+                        imageStatuses={imageStatuses}
+                    />
+
+                    {/* Footer - Hide on Manual screen because of split layout */}
+                    {currentScreen !== 'manual-config' && (
+                        <div className="absolute bottom-6 w-full z-20 px-6 md:px-12 text-[10px] text-gray-500 flex justify-between uppercase tracking-widest pointer-events-none hidden md:flex">
+                            <span>© 2024 Luxury Auto Group</span>
+                            <div className="flex gap-4 pointer-events-auto">
+                                <a href="#" className="hover:text-black">Privacy</a>
+                                <a href="#" className="hover:text-black">Legal</a>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
