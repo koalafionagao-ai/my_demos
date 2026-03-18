@@ -3,69 +3,157 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Portfolio | Project Hub</title>
+    <title>Portfolio | Fiona Gao</title>
     <style>
-        /* Minimalist Dark Theme */
-        body { 
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
-            background-color: #0d1117; 
-            color: #c9d1d9; 
-            margin: 0; 
-            display: flex; 
-            flex-direction: column; 
-            align-items: center; 
-            min-height: 100vh; 
-            padding: 40px 20px;
+        /* 核心调色板：统一为 Toolkit 风格 [cite: 205] */
+        :root {
+            --bg-color: #FDFCF8;      /* 暖象牙白背景 */
+            --text-main: #4A4643;     /* 柔和深褐灰 */
+            --text-muted: #8E8A86;    /* 次要文本灰 */
+            --accent-color: #A39B8B;  /* 高级灰褐色 */
+            --card-bg: #FFFFFF;       /* 纯白卡片 */
+            --border-color: #EBE8E0;  /* 极细微边框 */
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            padding: 80px 20px 40px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
             box-sizing: border-box;
+            line-height: 1.6;
         }
 
-        /* Header Styles */
-        .header { text-align: center; margin-bottom: 30px; }
-        .title-row { 
-            display: flex; 
-            align-items: baseline; 
-            justify-content: center; 
-            gap: 12px; 
-            flex-wrap: wrap; 
+        /* 页头样式 [cite: 207] */
+        .header {
+            text-align: center;
+            margin-bottom: 60px;
+            max-width: 600px;
         }
-        .header h1 { font-size: 2.2rem; font-weight: 600; color: #f0f6fc; margin: 0; letter-spacing: -1px; }
-        .email-link { 
-            font-size: 0.9rem; 
-            color: #8b949e; 
-            text-decoration: none; 
-            border-left: 1px solid #30363d; 
-            padding-left: 15px; 
-            transition: color 0.2s ease;
-        }
-        .email-link:hover { color: #58a6ff; }
-        .header p { color: #8b949e; font-size: 1.1rem; margin-top: 10px; font-weight: 300; }
 
-        /* Project List Styles */
-        .container { width: 100%; max-width: 550px; }
-        .project-list { display: flex; flex-direction: column; gap: 16px; }
-        .card { 
-            display: flex; justify-content: space-between; align-items: center; 
-            background: #161b22; border: 1px solid #30363d; 
-            padding: 20px; border-radius: 12px; text-decoration: none; 
-            color: #58a6ff; transition: all 0.2s ease;
+        .title-row {
+            display: flex;
+            align-items: baseline;
+            justify-content: center;
+            gap: 15px;
+            flex-wrap: wrap;
+            margin-bottom: 10px;
         }
-        .card:hover { 
-            background: #1c2128; 
-            border-color: #8b949e; 
-            transform: translateX(6px); 
-            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
-        }
-        .card-info { text-align: left; }
-        .card-info strong { font-size: 1.15rem; display: block; color: #58a6ff; }
-        .card-info span { color: #8b949e; font-size: 0.85rem; display: block; margin-top: 8px; line-height: 1.5; }
-        .arrow { font-size: 1.2rem; opacity: 0.7; }
 
-        /* Footer & Legal Notice */
-        .footer { 
-            margin-top: 100px; text-align: center; max-width: 500px;
-            font-size: 11px; color: #484f58; line-height: 1.6;
+        .header h1 {
+            font-size: 2.4rem;
+            font-weight: 600;
+            color: var(--text-main);
+            margin: 0;
+            letter-spacing: 1px;
         }
-        .legal-notice { margin-top: 20px; border-top: 1px solid #21262d; padding-top: 20px; text-align: justify; }
+
+        .email-link {
+            font-size: 0.95rem;
+            color: var(--text-muted);
+            text-decoration: none;
+            border-left: 1px solid var(--border-color);
+            padding-left: 15px;
+            transition: color 0.3s ease;
+        }
+
+        .email-link:hover {
+            color: var(--text-main);
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            color: var(--text-muted);
+            font-weight: 300;
+            margin: 10px 0 0 0;
+        }
+
+        /* 项目列表容器 [cite: 215] */
+        .project-list {
+            width: 100%;
+            max-width: 600px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        /* 卡片样式：同步 Toolkit 的微动效 [cite: 216] */
+        .project-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 28px 32px;
+            text-decoration: none;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.02);
+        }
+
+        .project-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 24px rgba(0,0,0,0.06);
+            border-color: var(--accent-color);
+        }
+
+        .project-info h2 {
+            margin: 0 0 8px 0;
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--text-main);
+        }
+
+        .project-info p {
+            margin: 0;
+            font-size: 0.95rem;
+            color: var(--text-muted);
+            line-height: 1.5;
+        }
+
+        /* 箭头动画 [cite: 223] */
+        .arrow {
+            font-size: 1.4rem;
+            color: var(--accent-color);
+            font-weight: 300;
+            transition: transform 0.3s ease;
+            margin-left: 20px;
+        }
+
+        .project-card:hover .arrow {
+            transform: translateX(6px);
+            color: var(--text-main);
+        }
+
+        /* 页脚与法律声明 [cite: 224] */
+        .footer {
+            margin-top: 100px;
+            padding-bottom: 40px;
+            text-align: center;
+            max-width: 600px;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        .footer-meta {
+            letter-spacing: 1px;
+            font-weight: 500;
+            margin-bottom: 20px;
+        }
+
+        .legal-notice {
+            border-top: 1px solid var(--border-color);
+            padding-top: 20px;
+            font-size: 11px;
+            text-align: justify;
+            line-height: 1.6;
+            opacity: 0.8;
+        }
     </style>
 </head>
 <body>
@@ -78,55 +166,54 @@
         <p>AI Product Manager Portfolio</p>
     </div>
 
-    <div class="container">
-        <div class="project-list">
-            
-            <a href="./safepay/" class="card" target="_blank" rel="noopener noreferrer">
-                <div class="card-info">
-                    <strong>SafePay Security Dashboard</strong>
-                    <span>Risk vs. Conversion Balance Logic</span>
-                </div>
-                <div class="arrow">→</div>
-            </a>
-
-            <a href="./ledger/" class="card" target="_blank" rel="noopener noreferrer">
-                <div class="card-info">
-                    <strong>Home Transaction Ledger</strong>
-                    <span>PropTech Wallet Ledger & Multi-party Fund Orchestration</span>
-                </div>
-                <div class="arrow">→</div>
-            </a>
-
-            <a href="./travelplanner/" class="card" target="_blank" rel="noopener noreferrer">
-                <div class="card-info">
-                    <strong>Travel Planner</strong>
-                    <span>Intent-Aware Travel Engine: Personalized Itinerary & Geospatial Mapping</span>
-                </div>
-                <div class="arrow">→</div>
-            </a>
-
-            <a href="./configurator/" class="card" target="_blank" rel="noopener noreferrer">
-                <div class="card-info">
-                    <strong>Luxury Car Configurator</strong>
-                    <span>High-Fidelity Vehicle Configurator: Bespoke Luxury Customization Framework</span>
-                </div>
-                <div class="arrow">→</div>
-            </a>
-            <a href="./AutoCRM/" class="card" target="_blank" rel="noopener noreferrer">
-                <div class="card-info">
-                    <strong>Auto Retail CRM & Operations</strong>
-                    <span>Dual-view Retail CRM: Professional store management for Desktop & Mobile.</span>
-                </div>
-                <div class="arrow">→</div>
-            </a>
-
-        </div>
-
-        <div class="footer">
-            <div>STRICTLY CONFIDENTIAL | PORTFOLIO 2026</div>
-            <div class="legal-notice">
-                <strong>LEGAL DISCLAIMER:</strong> The content within this portfolio, including product logic, UI/UX designs, and technical frameworks, is for demonstration purposes only. All proprietary information and intellectual property belong to the author. Unauthorized distribution, reproduction, or use of these materials without explicit consent is strictly prohibited.
+    <div class="project-list">
+        
+        <a href="./safepay/" class="project-card" target="_blank" rel="noopener noreferrer">
+            <div class="project-info">
+                <h2>SafePay Security Dashboard</h2>
+                <p>Risk vs. Conversion Balance Logic</p>
             </div>
+            <div class="arrow">→</div>
+        </a>
+
+        <a href="./ledger/" class="project-card" target="_blank" rel="noopener noreferrer">
+            <div class="project-info">
+                <h2>Home Transaction Ledger</h2>
+                <p>PropTech Wallet Ledger & Multi-party Fund Orchestration</p>
+            </div>
+            <div class="arrow">→</div>
+        </a>
+
+        <a href="./travelplanner/" class="project-card" target="_blank" rel="noopener noreferrer">
+            <div class="project-info">
+                <h2>Travel Planner</h2>
+                <p>Intent-Aware Travel Engine: Personalized Itinerary & Geospatial Mapping</p>
+            </div>
+            <div class="arrow">→</div>
+        </a>
+
+        <a href="./configurator/" class="project-card" target="_blank" rel="noopener noreferrer">
+            <div class="project-info">
+                <h2>Luxury Car Configurator</h2>
+                <p>High-Fidelity Vehicle Configurator: Bespoke Luxury Customization Framework</p>
+            </div>
+            <div class="arrow">→</div>
+        </a>
+
+        <a href="./AutoCRM/" class="project-card" target="_blank" rel="noopener noreferrer">
+            <div class="project-info">
+                <h2>Auto Retail CRM & Operations</h2>
+                <p>Dual-view Retail CRM: Professional store management for Desktop & Mobile.</p>
+            </div>
+            <div class="arrow">→</div>
+        </a>
+
+    </div>
+
+    <div class="footer">
+        <div class="footer-meta">STRICTLY CONFIDENTIAL | PORTFOLIO 2026</div>
+        <div class="legal-notice">
+            <strong>LEGAL DISCLAIMER:</strong> The content within this portfolio, including product logic, UI/UX designs, and technical frameworks, is for demonstration purposes only. [cite: 234] All proprietary information and intellectual property belong to the author. [cite: 235] Unauthorized distribution, reproduction, or use of these materials without explicit consent is strictly prohibited. [cite: 236]
         </div>
     </div>
 
