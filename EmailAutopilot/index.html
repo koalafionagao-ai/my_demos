@@ -1,0 +1,1136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Email Autopilot — Case #4821 Demo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#eef1f5;--surface:#fff;--border:#e8ecf1;--text:#1a1d23;
+  --muted:#5c6370;--faint:#9aa3af;--accent:#1a1d23;
+  --mono:"JetBrains Mono",ui-monospace,monospace;
+  --blue:#3b6cff;--blue-bg:#eef3ff;--blue-border:#c7d4ff;
+  --green:#059669;--green-bg:#ecfdf5;--green-border:#a7f3d0;
+  --purple:#7c3aed;--purple-bg:#f5f3ff;--purple-border:#c4b5fd;
+  --amber:#d97706;--amber-bg:#fffbeb;--amber-border:#fcd34d;
+  --red:#dc2626;--red-bg:#fef2f2;--red-border:#fecaca;
+  --shadow:0 4px 24px rgba(26,29,35,.06);
+  --radius:20px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Inter,-apple-system,sans-serif;background:var(--bg);color:var(--text);font-size:13px;line-height:1.5;min-height:100vh}
+.app{max-width:1440px;margin:0 auto;padding:18px 22px 28px;display:flex;flex-direction:column;gap:14px;position:relative}
+
+.case-header{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px 20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;box-shadow:var(--shadow)}
+.case-header h1{font-size:16px;font-weight:700;color:var(--accent);letter-spacing:-.02em}
+.case-header .meta{font-size:11px;color:var(--muted);margin-top:3px}
+.hdr-right{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.who{display:flex;align-items:center;gap:8px;margin-left:8px;padding-left:14px;border-left:1px solid var(--border);white-space:nowrap;line-height:1.2}
+.who-av{width:28px;height:28px;border-radius:50%;background:#eceff3;color:#1a1d23;font-size:10px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0}
+.who b{display:block;font-size:13px;font-weight:650}
+.who small{display:block;font-size:10px;color:var(--muted);font-weight:500}
+.status-pill{font-size:10px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;padding:4px 8px;border-radius:4px;font-family:var(--mono);white-space:nowrap;border:1px solid var(--border);background:transparent;color:var(--muted)}
+.status-pill.resolved{background:var(--green-bg);color:var(--green);border-color:var(--green-border)}
+.sla-pill{font-size:10px;font-weight:600;font-family:var(--mono);padding:4px 8px;border-radius:4px;white-space:nowrap}
+.sla-pill.ok{background:var(--green-bg);color:var(--green);border:1px solid var(--green-border)}
+.sla-pill.warn{background:var(--amber-bg);color:var(--amber);border:1px solid var(--amber-border)}
+.sla-pill.breach{background:var(--red-bg);color:var(--red);border:1px solid var(--red-border)}
+
+.pattern-bar{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 18px;box-shadow:var(--shadow)}
+.pattern-bar .label{font-size:10px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--faint);font-family:var(--mono);margin-bottom:10px}
+.pattern-track{display:flex;align-items:flex-start;gap:0;overflow-x:auto}
+.pattern-step{flex:1;min-width:60px;text-align:center;position:relative;padding:0 2px}
+.pattern-step:not(:last-child)::after{content:"";position:absolute;top:8px;left:calc(50% + 9px);width:calc(100% - 18px);height:2px;background:var(--border);z-index:0}
+.pattern-step.done:not(:last-child)::after{background:var(--green-border)}
+.pattern-dot{width:18px;height:18px;border-radius:50%;border:2px solid var(--border);background:var(--surface);margin:0 auto 6px;position:relative;z-index:1;display:flex;align-items:center;justify-content:center;font-size:8px;color:transparent;transition:all .2s}
+.pattern-step.done .pattern-dot{background:var(--green);border-color:var(--green);color:#fff}
+.pattern-step.done .pattern-dot::after{content:"✓";color:#fff;font-size:9px}
+.pattern-step.active .pattern-dot{background:var(--blue);border-color:var(--blue);box-shadow:0 0 0 4px rgba(59,108,255,.16)}
+.pattern-step .name{font-size:9px;font-weight:600;color:var(--faint);line-height:1.2}
+.pattern-step.active .name{color:var(--blue);font-weight:800}
+.pattern-step.done .name{color:var(--green)}
+
+.sla-alert-bar{background:var(--amber-bg);border:1px solid var(--amber-border);border-radius:16px;padding:10px 16px;font-size:11px;color:var(--amber);font-family:var(--mono);display:none;line-height:1.3;box-shadow:var(--shadow)}
+.sla-alert-bar.show{display:block}
+.sla-alert-bar .atitle{font-weight:900}
+
+.action-bar{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:10px 16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;box-shadow:var(--shadow)}
+.action-bar .hint{flex:1;font-size:12px;color:var(--muted);min-width:140px}
+.btn{font-size:11px;font-weight:600;padding:8px 16px;border-radius:8px;border:1px solid var(--border);background:var(--surface);cursor:pointer;font-family:inherit;transition:all .15s}
+.btn:hover:not(:disabled){background:var(--bg)}
+.btn:disabled{opacity:.3;cursor:not-allowed}
+.btn.primary{background:#1a1d23;color:#fff;border-color:#1a1d23}
+.btn.primary:hover:not(:disabled){background:#2a2e36}
+.btn.approve{background:var(--green);color:#fff;border-color:var(--green)}
+.btn.escalate{color:var(--amber);border-color:var(--amber-border)}
+
+/* ─── Three-column main ─── */
+.main{display:grid;grid-template-columns:200px minmax(210px,280px) 1fr;gap:12px;min-height:440px}
+
+.event-feed{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 12px;display:flex;flex-direction:column;overflow-y:auto;box-shadow:var(--shadow)}
+.panel-title{font-size:10px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--faint);margin-bottom:10px;font-family:var(--mono)}
+.event-item{display:flex;gap:8px;padding:8px;border-radius:14px;margin-bottom:2px;border:1px solid transparent;cursor:default}
+.event-item.active{background:var(--blue-bg);border-color:var(--blue-border)}
+.event-item.done{opacity:.5}
+.event-item.future{opacity:.25}
+.event-marker{width:20px;height:20px;border-radius:50%;border:2px solid var(--border);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;font-family:var(--mono)}
+.event-item.done .event-marker{background:var(--green);border-color:var(--green);color:#fff}
+.event-item.active .event-marker{background:var(--blue);border-color:var(--blue);color:#fff}
+.event-item .ev-label{font-size:12px;font-weight:650;line-height:1.3}
+.event-item .ev-sub{font-size:10px;color:var(--muted);margin-top:2px;line-height:1.2}
+
+/* Col 2: Activity Stream */
+.col-stream{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px;overflow-y:auto;display:flex;flex-direction:column;box-shadow:var(--shadow)}
+.stream-item{border:1px solid var(--border);border-radius:16px;padding:10px 12px;background:#fafbfc;margin-bottom:8px;cursor:pointer;transition:border-color .15s,box-shadow .15s}
+.stream-item:hover{border-color:var(--blue-border);box-shadow:var(--shadow)}
+.stream-item.selected{border-color:var(--blue);background:var(--blue-bg)}
+.stream-item.inbound{border-left:3px solid var(--purple)}
+.stream-item.outbound{border-left:3px solid var(--green)}
+.stream-item.draft-item{border-left:3px solid var(--amber)}
+.stream-item.system-item{border-left:3px solid var(--faint)}
+.actor-row{display:flex;gap:4px;flex-wrap:wrap;align-items:center;margin-bottom:3px}
+.badge{font-size:8px;font-weight:700;letter-spacing:.04em;font-family:var(--mono);padding:2px 8px;border-radius:999px;text-transform:uppercase;white-space:nowrap}
+.badge.voice{background:var(--blue-bg);color:var(--blue);border:1px solid var(--blue-border)}
+.badge.email{background:#f0f9ff;color:#0369a1;border:1px solid #bae6fd}
+.badge.inbound{background:var(--purple-bg);color:var(--purple);border:1px solid var(--purple-border)}
+.badge.outbound{background:var(--green-bg);color:var(--green);border:1px solid var(--green-border)}
+.badge.customer{background:#fef3c7;color:#92400e;border:1px solid #fcd34d}
+.badge.agent{background:var(--accent);color:#fff;border:1px solid var(--accent)}
+.badge.ai{background:var(--green);color:#fff;border:1px solid var(--green)}
+.badge.system{background:var(--bg);color:var(--muted);border:1px solid var(--border)}
+.badge.draft-badge{background:var(--amber-bg);color:var(--amber);border:1px dashed var(--amber-border)}
+.ts{font-size:9px;color:var(--muted);font-family:var(--mono)}
+.stream-summary{font-size:11px;font-weight:600;color:var(--text);margin-top:1px;line-height:1.3}
+.tag-row{display:flex;flex-wrap:wrap;gap:3px;margin-top:4px}
+.tag{font-size:7px;font-weight:800;font-family:var(--mono);color:var(--muted);border:1px solid var(--border);background:var(--bg);padding:1px 4px;border-radius:999px;text-transform:uppercase}
+
+/* Col 3: Detail Panel */
+.col-detail{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px;overflow-y:auto;display:flex;flex-direction:column;box-shadow:var(--shadow)}
+.detail-empty{color:var(--faint);font-size:12px;font-family:var(--mono);padding:28px 10px;text-align:center}
+.detail-section{margin-bottom:12px}
+.detail-section-head{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-family:var(--mono);margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid var(--border)}
+pre.detail-pre{font-size:12px;white-space:pre-wrap;line-height:1.55;font-family:inherit;padding:12px 14px;background:#fafbfc;border-radius:14px;border:1px solid var(--border)}
+.attach{display:inline-flex;margin-top:4px;padding:4px 10px;border:1px dashed var(--border);border-radius:999px;font-size:10px;color:var(--muted)}
+.attach.warn{border-style:solid;color:var(--red);border-color:var(--red-border);background:var(--red-bg)}
+
+/* Trace in detail panel — horizontal flow */
+.et-flow{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.et-step{border-top:3px solid var(--border);padding:8px 6px 6px;font-size:11px;line-height:1.4;min-height:72px;color:var(--text)}
+.et-task{list-style:none;margin:0;padding:0}
+.et-kv{display:grid;grid-template-columns:auto 1fr;gap:3px 8px;align-items:start}
+.et-k{font-size:8px;font-weight:700;font-family:var(--mono);color:var(--muted);letter-spacing:.02em;padding-top:1px;white-space:nowrap}
+.et-v{font-size:9px;line-height:1.35;color:var(--text)}
+.et-list{list-style:none;margin:0;padding:0}
+.et-list li{padding:1px 0;line-height:1.35}
+.et-chips{display:flex;flex-direction:column;gap:3px;align-items:flex-start}
+.et-chip{font-size:8px;font-weight:800;font-family:var(--mono);padding:1px 6px;border-radius:999px;text-transform:uppercase;letter-spacing:.03em}
+.et-chip.ok{background:var(--green-bg);color:var(--green);border:1px solid var(--green-border)}
+.et-chip.warn{background:var(--amber-bg);color:var(--amber);border:1px solid var(--amber-border)}
+.et-chip.deny{background:var(--red-bg);color:var(--red);border:1px solid var(--red-border)}
+.et-chip.info{background:var(--blue-bg);color:var(--blue);border:1px solid var(--blue-border)}
+.et-step.intake{border-top-color:var(--blue)}
+.et-step.understand{border-top-color:var(--purple)}
+.et-step.orchestrate{border-top-color:var(--amber)}
+.et-step.resolve{border-top-color:var(--green)}
+.et-step-name{font-size:7px;font-weight:800;font-family:var(--mono);letter-spacing:.06em;text-transform:uppercase;margin-bottom:2px}
+.et-step.intake .et-step-name{color:var(--blue)}
+.et-step.understand .et-step-name{color:var(--purple)}
+.et-step.orchestrate .et-step-name{color:var(--amber)}
+.et-step.resolve .et-step-name{color:var(--green)}
+/* Stage badge on stream cards */
+.badge.stage-done{background:var(--green-bg);color:var(--green);border:1px solid var(--green-border)}
+.badge.stage-active{background:var(--blue-bg);color:var(--blue);border:1px solid var(--blue-border)}
+.mode-badge{font-size:8px;font-weight:800;letter-spacing:.04em;padding:1px 5px;border-radius:3px;font-family:var(--mono);text-transform:uppercase;display:inline-block;margin-top:2px}
+.mode-badge.auto{background:var(--green);color:#fff}
+.mode-badge.read{background:var(--blue-bg);color:var(--blue);border:1px solid var(--blue-border)}
+.mode-badge.draft{background:var(--amber-bg);color:var(--amber);border:1px dashed var(--amber-border)}
+.mode-badge.block{background:var(--red-bg);color:var(--red);border:1px solid var(--red-border);text-decoration:line-through}
+
+/* Draft box in detail */
+.draft-box{border:1px solid var(--amber-border);border-radius:16px;overflow:hidden;margin-bottom:8px}
+.draft-box .db-head{background:var(--amber-bg);color:var(--amber);font-size:9px;font-weight:800;font-family:var(--mono);letter-spacing:.06em;text-transform:uppercase;padding:8px 12px;border-bottom:1px solid var(--amber-border)}
+.draft-box pre{white-space:pre-wrap;font-size:12px;line-height:1.55;font-family:inherit;padding:12px 14px}
+
+/* ─── AI Action Log drawer ─── */
+.log-tab{position:fixed;right:0;top:50%;transform:translateY(-50%);writing-mode:vertical-rl;text-orientation:mixed;background:#1a1d23;color:#fff;font-size:10px;font-weight:700;font-family:var(--mono);letter-spacing:.06em;padding:16px 8px;border-radius:14px 0 0 14px;cursor:pointer;z-index:100;text-transform:uppercase;transition:background .15s}
+.log-tab:hover{background:var(--blue)}
+.log-drawer{position:fixed;right:0;top:0;bottom:0;width:360px;background:var(--surface);border-left:1px solid var(--border);box-shadow:-8px 0 32px rgba(0,0,0,.08);z-index:200;transform:translateX(100%);transition:transform .2s ease;display:flex;flex-direction:column;border-radius:20px 0 0 20px}
+.log-drawer.open{transform:translateX(0)}
+.log-drawer-head{padding:18px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.log-drawer-head h2{font-size:12px;font-weight:700;font-family:var(--mono);letter-spacing:.06em;text-transform:uppercase}
+.log-close{background:none;border:none;font-size:16px;cursor:pointer;color:var(--muted);padding:4px}
+.log-body{flex:1;overflow-y:auto;padding:4px 0}
+.log-entry{padding:12px 18px;border-bottom:1px solid var(--bg);font-family:var(--mono);font-size:10px;line-height:1.4}
+.log-entry .le-ctx{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:3px}
+.log-entry .le-ctx .le-stage{font-size:7px;font-weight:800;padding:1px 4px;border-radius:3px;background:var(--bg);color:var(--muted);border:1px solid var(--border);text-transform:uppercase}
+.log-entry .le-ctx .le-target{font-size:7px;font-weight:700;padding:1px 4px;border-radius:3px;background:var(--blue-bg);color:var(--blue);border:1px solid var(--blue-border)}
+.log-entry .le-ts{color:var(--faint);display:block;margin-bottom:1px}
+.log-entry .le-who{font-weight:800;margin-right:6px;color:var(--green)}
+.log-entry .le-who.agent{color:var(--accent)}
+.le-mode.SYSTEM{color:var(--muted)}
+.le-mode.AUTO{color:var(--green)}
+.le-mode.READ{color:var(--blue)}
+.le-mode.DRAFT{color:var(--amber)}
+.le-mode.BLOCK{color:var(--red)}
+.le-mode.AGENT{color:var(--accent)}
+.log-entry .le-detail{color:var(--muted)}
+.log-overlay{position:fixed;inset:0;background:rgba(0,0,0,.12);z-index:190;display:none}
+.log-overlay.open{display:block}
+
+.footer{text-align:center;font-size:11px;color:var(--faint);font-family:var(--mono);padding:8px 0 4px}
+.role-nav{border:0;background:none;padding:0;font:inherit;color:var(--muted);cursor:pointer}
+.role-nav:hover{color:var(--text)}
+.role-nav.on{color:var(--text);font-weight:700;text-decoration:underline;text-underline-offset:3px}
+.view-pane{display:none;flex-direction:column;gap:12px}
+.view-pane.on{display:flex}
+
+.dash-kpi{display:grid;grid-template-columns:repeat(5,1fr);gap:10px}
+.dk{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:14px 16px;box-shadow:var(--shadow)}
+.dk .k{font-size:10px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--faint);margin-bottom:6px}
+.dk .n{font-size:26px;font-weight:700;letter-spacing:-.03em}
+.dk .d{font-size:11px;color:var(--muted);margin-top:4px}
+.dk .meta{display:flex;justify-content:space-between;gap:8px;margin-top:8px;font-size:10px;color:var(--muted)}
+.dk .delta{font-family:var(--mono);font-weight:700;color:var(--text)}
+.dk .delta.down::before{content:"↓ "}
+.dk .delta.up::before{content:"↑ "}
+.dk .delta.bad{color:var(--red)}
+.card-meta{display:flex;justify-content:space-between;gap:8px;align-items:center;margin:6px 0 10px;font-size:10px;color:var(--muted)}
+.card-meta .delta{font-family:var(--mono);font-weight:700;color:var(--text)}
+.chart{width:100%;height:120px;display:block}
+.chart text{font-size:8px;fill:#9aa3af;font-family:var(--mono)}
+.toast{position:fixed;left:50%;bottom:78px;transform:translateX(-50%) translateY(12px);background:#1a1d23;color:#fff;padding:12px 18px;border-radius:14px;font-size:13px;line-height:1.4;box-shadow:0 10px 30px rgba(0,0,0,.18);z-index:400;opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;max-width:420px;text-align:center}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.dash-mid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.dash-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:16px 18px;box-shadow:var(--shadow)}
+.dash-card h3{font-size:12px;font-weight:700;margin:0}
+.dash-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:10px}
+.dash-head .note{font-size:10px;color:var(--muted);white-space:nowrap}
+.ai-split{display:grid;grid-template-columns:1fr 1fr;gap:0 24px;align-items:stretch}
+.ai-col{display:grid;grid-template-rows:18px repeat(4,36px);align-items:stretch}
+.ai-col.mix{grid-template-rows:18px 1fr}
+.ai-col + .ai-col{border-left:1px solid #eceff3;padding-left:24px}
+.ai-col .mod{font-size:10px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--faint);margin:0;line-height:18px}
+.ai-split .hbar{margin:0;height:36px;align-items:center}
+.ai-split .hbar .lb{width:56px}
+.ai-split .metric-row{margin:0;padding:0;height:36px;align-items:center;border-bottom:1px solid #f1f3f6}
+.donut-row{display:flex;align-items:center;gap:10px;height:100%;justify-content:flex-start}
+.donut-wrap{position:relative;width:128px;height:128px;flex-shrink:0}
+.donut-wrap svg{width:128px;height:128px;transform:rotate(-90deg)}
+.donut-c{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none}
+.donut-c b{font-size:22px;font-weight:700;line-height:1}
+.donut-c span{font-size:10px;color:var(--muted);margin-top:2px}
+.donut-leg{list-style:none;margin:0;padding:0;font-size:12px;flex:none}
+.donut-leg li{display:grid;grid-template-columns:8px 7.5em 2em 2.6em;align-items:center;column-gap:8px;height:26px;color:var(--text)}
+.donut-leg i{width:8px;height:8px;border-radius:2px}
+.donut-leg .cnt,.donut-leg .pct{font-family:var(--mono);text-align:right}
+.dash-card .sub{font-size:11px;color:var(--muted);margin-bottom:12px}
+.hbar{display:flex;align-items:center;gap:8px;margin:7px 0}
+.hbar .lb{width:92px;font-size:11px;color:var(--muted);flex-shrink:0}
+.hbar .track{flex:1;height:8px;background:#eceff3;border-radius:999px;overflow:hidden}
+.hbar .fill{height:100%;background:#1a1d23;border-radius:999px}
+.hbar .fill.risk{background:var(--red)}
+.hbar .nv{width:36px;text-align:right;font-size:11px;font-family:var(--mono)}
+.metric-row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f1f3f6;font-size:12px}
+.metric-row .ok{color:var(--text);font-weight:700}
+.metric-row .bad{color:var(--red);font-weight:700}
+.spark{width:100%;height:56px;display:block}
+.dash-bottom{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+
+.wf-chrome{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:10px 14px;display:flex;align-items:center;gap:12px;box-shadow:var(--shadow)}
+.wf-chrome h1{font-size:15px;font-weight:700}
+.wf-chrome .meta{font-size:11px;color:var(--muted);margin-top:2px}
+.wf-chrome > div:first-child{flex:1;min-width:160px}
+.wf-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-left:auto}
+.wf-status{font-size:12px;color:var(--muted);margin-right:4px}
+.wf-status b{color:var(--text);font-weight:650}
+.wf-fixture{font-size:12px;padding:7px 10px;border:1px solid var(--border);border-radius:8px;background:var(--surface);font-family:inherit;color:var(--text)}
+.wf-badge{font-size:10px;font-weight:700;padding:4px 10px;border-radius:4px;background:#f3f4f6;color:#374151}
+.wf-body{display:grid;grid-template-columns:200px 1fr 320px;gap:10px;min-height:560px}
+.wf-lib,.wf-cfg{background:var(--surface);border:1px solid var(--border);border-radius:16px;box-shadow:var(--shadow);display:flex;flex-direction:column;overflow:hidden;max-height:640px}
+.wf-lib-head,.wf-cfg-head{padding:12px 14px;border-bottom:1px solid var(--border);font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--faint)}
+.wf-find{margin:10px 12px;padding:8px 10px;border:1px solid var(--border);border-radius:10px;font-size:12px;width:calc(100% - 24px)}
+.wf-cat{padding:4px 12px 10px;overflow-y:auto;flex:1}
+.wf-cat h4{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--faint);margin:8px 0 6px}
+.lib-item{border:1px solid var(--border);border-radius:12px;padding:8px 10px;margin-bottom:6px;background:#fafbfc;cursor:grab;font-size:12px;font-weight:600}
+.lib-item small{display:block;font-weight:500;color:var(--muted);font-size:10px;margin-top:2px}
+.lib-item.on{border-color:#1a1d23;background:#fff}
+.wf-canvas-wrap{background:#f6f7f9;border:1px solid var(--border);border-radius:16px;box-shadow:var(--shadow);position:relative;overflow:auto;min-height:560px;max-height:640px;background-image:radial-gradient(#d9dee6 1px,transparent 1px);background-size:18px 18px}
+.wf-zoom{position:absolute;top:10px;right:10px;background:#fff;border:1px solid var(--border);border-radius:999px;padding:4px 10px;font-size:11px;font-family:var(--mono);z-index:2}
+.wf-stage{position:relative;width:860px;height:1040px;margin:12px auto}
+.wf-edge{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.wn{position:absolute;width:176px;background:#fff;border:1px solid #dfe3e8;border-radius:14px;padding:10px 12px;cursor:pointer;box-shadow:0 2px 10px rgba(0,0,0,.04);transition:box-shadow .2s,border-color .2s,opacity .2s}
+.wn.on{border-color:#1a1d23;box-shadow:0 0 0 3px rgba(26,29,35,.12)}
+.wn.run{border-color:#1a1d23;box-shadow:0 0 0 4px rgba(26,29,35,.16)}
+.wn.done{border-color:#1a1d23;background:#f4f5f7}
+.wn.skip{opacity:.32}
+.wn.branch{width:148px}
+.wn.start,.wn.end{width:88px;text-align:center;background:#1a1d23;color:#fff;border:0;padding:8px 10px;border-radius:999px;font-weight:700;font-size:12px}
+.wn .wt{font-size:12px;font-weight:700}
+.wn .wm{font-size:10px;color:var(--muted);margin-top:4px;line-height:1.3}
+.wn .wp{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}
+.wn .wp span{font-size:8px;font-family:var(--mono);text-transform:uppercase;background:#f3f4f6;padding:2px 6px;border-radius:999px}
+.wn.cond{background:#f3f4f6}
+.wn.gate{border-style:dashed}
+.ex-line{font-size:12px;padding:6px 0;border-bottom:1px solid #f1f3f6;color:#374151}
+.ex-line.ok::before{content:"✓ ";font-weight:700}
+.ex-line.step::before{content:"→ ";font-weight:700}
+.ex-line.risk{color:var(--red);font-weight:700}
+.ex-result{margin-top:12px;padding:10px 12px;background:#f4f5f7;border-radius:12px;font-size:12px;font-weight:700}
+.cfg-tabs{display:flex;border-bottom:1px solid var(--border);padding:0 8px}
+.cfg-tabs button{flex:1;border:0;background:none;padding:10px 4px;font-size:11px;font-weight:600;color:var(--faint);cursor:pointer}
+.cfg-tabs button.on{color:#1a1d23;box-shadow:inset 0 -2px 0 #1a1d23}
+.cfg-body{padding:12px 14px;overflow:auto;flex:1}
+.cfg-field{margin-bottom:12px}
+.cfg-field label{display:block;font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--faint);margin-bottom:4px}
+.cfg-field .val,.cfg-field select,.cfg-field textarea{width:100%;font-size:12px;border:1px solid var(--border);border-radius:10px;padding:8px 10px;background:#fafbfc;font-family:inherit}
+.cfg-field textarea{min-height:64px;resize:none}
+.toggle-row{display:flex;justify-content:space-between;align-items:center;font-size:12px;padding:6px 0;border-bottom:1px solid #f1f3f6}
+.tog{width:32px;height:18px;border-radius:999px;background:#1a1d23;position:relative}
+.tog::after{content:"";position:absolute;width:12px;height:12px;background:#fff;border-radius:50%;top:3px;right:3px}
+.cfg-save{display:none}
+</style>
+</head>
+<body>
+<div class="app">
+  <div id="viewAgent" class="view-pane on">
+  <header class="case-header">
+    <div>
+      <h1 id="headerTitle">CASE #4821 · Maya Chen · Card Dispute</h1>
+      <p class="meta">Meridian Trust Bank · Visa *4412 · $186.00 unauthorized</p>
+    </div>
+    <div class="hdr-right">
+      <span class="status-pill" id="caseStatus">Open</span>
+      <span class="sla-pill ok" id="slaPill">SLA: On track · —</span>
+      <div class="who"><span class="who-av">PN</span><span><b>Priya N.</b><small>Agent</small></span></div>
+    </div>
+  </header>
+  <div class="pattern-bar">
+    <div class="label">Resolution Pattern · Banking Card Dispute</div>
+    <div class="pattern-track" id="patternTrack"></div>
+  </div>
+  <div class="sla-alert-bar" id="slaAlertBar"></div>
+  <div class="action-bar">
+    <span class="hint" id="actionHint">Click Next Event to begin.</span>
+    <button class="btn primary" id="btnNext">Next Event →</button>
+    <button class="btn approve" id="btnApprove" disabled>Approve &amp; Send</button>
+    <button class="btn escalate" id="btnEscalate" disabled>Escalate to Voice</button>
+  </div>
+  <div class="main">
+    <nav class="event-feed">
+      <div class="panel-title">Maya’s Journey</div>
+      <div id="eventFeed"></div>
+    </nav>
+    <div class="col-stream">
+      <div class="panel-title">Activity Stream</div>
+      <div id="streamList"></div>
+    </div>
+    <div class="col-detail">
+      <div class="panel-title">Detail</div>
+      <div id="detailPanel"><div class="detail-empty">Select an activity card to view details, execution trace, and full content.</div></div>
+    </div>
+  </div>
+  </div>
+
+  <div id="viewSupervisor" class="view-pane">
+    <header class="case-header">
+      <div>
+        <h1>Card Disputes · Weekly operations</h1>
+        <p class="meta">Meridian Trust Bank · week 11–17 Aug 2026 · vs 4–10 Aug</p>
+      </div>
+      <div class="who"><span class="who-av">ER</span><span><b>Elena Ruiz</b><small>Supervisor</small></span></div>
+    </header>
+    <div class="dash-kpi">
+      <div class="dk"><div class="k">Open Cases</div><div class="n">49</div>
+        <div class="meta"><span>Sun 17 close</span><span class="delta down">4 vs last close</span></div></div>
+      <div class="dk"><div class="k">Resolution Rate</div><div class="n">92%</div>
+        <div class="meta"><span>This week</span><span class="delta up">4% vs last week</span></div></div>
+      <div class="dk"><div class="k">Repeat Contact Rate</div><div class="n">12%</div>
+        <div class="meta"><span>This week</span><span class="delta down">6% vs last week</span></div></div>
+      <div class="dk risk"><div class="k">SLA Risk</div><div class="n">7</div>
+        <div class="meta"><span>Sun 17 close</span><span class="delta up bad">2 vs last close</span></div></div>
+      <div class="dk"><div class="k">AI Automation Rate</div><div class="n">89%</div>
+        <div class="meta"><span>This week</span><span class="delta up">3% vs last week</span></div></div>
+    </div>
+    <div class="dash-mid">
+      <div class="dash-card">
+        <div class="dash-head"><h3>Case / Queue Health</h3><span class="note">Sun 17 close</span></div>
+        <div class="ai-split">
+          <div class="ai-col mix">
+            <div class="mod">Where open cases sit</div>
+            <div class="donut-row">
+              <div class="donut-wrap">
+                <svg viewBox="0 0 112 112" aria-label="Open queue mix">
+                  <circle cx="56" cy="56" r="36" fill="none" stroke="#eceff3" stroke-width="14"/>
+                  <circle cx="56" cy="56" r="36" fill="none" stroke="#1a1d23" stroke-width="14" stroke-dasharray="83.1 226.2" stroke-dashoffset="0"/>
+                  <circle cx="56" cy="56" r="36" fill="none" stroke="#6b7280" stroke-width="14" stroke-dasharray="101.6 226.2" stroke-dashoffset="-83.1"/>
+                  <circle cx="56" cy="56" r="36" fill="none" stroke="#d1d5db" stroke-width="14" stroke-dasharray="41.5 226.2" stroke-dashoffset="-184.7"/>
+                </svg>
+                <div class="donut-c"><b>49</b><span>open</span></div>
+              </div>
+              <ul class="donut-leg">
+                <li><i style="background:#1a1d23"></i><span>New</span><span class="cnt">18</span><span class="pct">37%</span></li>
+                <li><i style="background:#6b7280"></i><span>Investigation</span><span class="cnt">22</span><span class="pct">45%</span></li>
+                <li><i style="background:#d1d5db"></i><span>Waiting</span><span class="cnt">9</span><span class="pct">18%</span></li>
+              </ul>
+            </div>
+          </div>
+          <div class="ai-col">
+            <div class="mod">Throughput &amp; watchouts</div>
+            <div class="metric-row"><span>Closed this week</span><span class="ok">124</span></div>
+            <div class="metric-row"><span>Aging &gt; 5d</span><span class="ok">11</span></div>
+            <div class="metric-row"><span>SLA at risk</span><span class="bad">7</span></div>
+            <div class="metric-row"><span>Follow-up overdue</span><span class="bad">3</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="dash-card">
+        <div class="dash-head"><h3>AI Performance</h3><span class="note">This week 11–17 Aug</span></div>
+        <div class="ai-split">
+          <div class="ai-col">
+            <div class="mod">Share of actions</div>
+            <div class="hbar"><span class="lb">AUTO</span><div class="track"><div class="fill" style="width:61%"></div></div><span class="nv">61%</span></div>
+            <div class="hbar"><span class="lb">READ</span><div class="track"><div class="fill" style="width:18%"></div></div><span class="nv">18%</span></div>
+            <div class="hbar"><span class="lb">DRAFT</span><div class="track"><div class="fill" style="width:11%"></div></div><span class="nv">11%</span></div>
+            <div class="hbar"><span class="lb">BLOCK</span><div class="track"><div class="fill" style="width:10%"></div></div><span class="nv">10%</span></div>
+          </div>
+          <div class="ai-col">
+            <div class="mod">Safety &amp; outcome</div>
+            <div class="metric-row"><span>Human takeover</span><span class="ok">11%</span></div>
+            <div class="metric-row"><span>AI resolution rate</span><span class="ok">79%</span></div>
+            <div class="metric-row"><span>Hallucinated status</span><span class="ok">0</span></div>
+            <div class="metric-row"><span>Human-gate compliance</span><span class="ok">100%</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="dash-bottom">
+      <div class="dash-card">
+        <h3>Repeat Contact Trend</h3>
+        <div class="card-meta"><span>Weekly rate · W7 = this week</span><span class="delta">↓ 56% vs W1</span></div>
+        <svg class="chart" viewBox="0 0 240 120" aria-label="Weekly same-case contacts declining">
+          <line x1="36" y1="14" x2="36" y2="88" stroke="#d9dee6"/>
+          <line x1="36" y1="88" x2="228" y2="88" stroke="#d9dee6"/>
+          <line x1="36" y1="51" x2="228" y2="51" stroke="#eceff3"/>
+          <text x="4" y="18">40</text>
+          <text x="8" y="55">20</text>
+          <text x="12" y="90">0</text>
+          <polyline fill="none" stroke="#1a1d23" stroke-width="2" points="48,24 76,32 104,40 132,48 160,58 188,66 216,74"/>
+          <circle cx="48" cy="24" r="2.5" fill="#1a1d23"/>
+          <circle cx="216" cy="74" r="2.5" fill="#1a1d23"/>
+          <text x="36" y="106">30 Jun</text>
+          <text x="128" y="106">Jul</text>
+          <text x="188" y="106">17 Aug</text>
+        </svg>
+      </div>
+      <div class="dash-card">
+        <h3>14-day Voice Re-contact</h3>
+        <div class="card-meta"><span>Window ending Sun 17</span><span class="delta down">6% vs last close</span></div>
+        <div class="n" style="font-size:28px;font-weight:700">9%</div>
+        <p class="sub" style="margin:8px 0 0">Same-case Voice after email · last week window 15%</p>
+      </div>
+      <div class="dash-card">
+        <h3>Customer Effort / CSAT</h3>
+        <div class="card-meta"><span>Surveys in this week</span><span class="delta">vs last week</span></div>
+        <div class="metric-row"><span>Journey CES</span><span class="ok">4.6 · ↑ 0.2</span></div>
+        <div class="metric-row"><span>Email CSAT</span><span class="ok">4.4 · ↑ 0.1</span></div>
+      </div>
+      <div class="dash-card">
+        <h3>Regulatory SLA Breach</h3>
+        <div class="card-meta"><span>Breaches this week</span><span class="delta">vs last week 0</span></div>
+        <div class="n" style="font-size:28px;font-weight:700">0</div>
+        <p class="sub" style="margin:8px 0 0">Reg Z clocks · no change</p>
+      </div>
+    </div>
+  </div>
+
+  <div id="viewAdmin" class="view-pane">
+    <div class="wf-chrome">
+      <div>
+        <h1>Card Dispute Resolution</h1>
+        <p class="meta">Meridian Trust Bank · all card-dispute cases · not a single-ticket rule</p>
+      </div>
+      <div class="wf-actions">
+        <span class="wf-status">Status · <b>Published v1.4</b></span>
+        <select class="wf-fixture" id="wfFixture" title="Which fixture to run on the canvas">
+          <option value="happy">#4821 · status follow-up</option>
+          <option value="risk">#4821 · high-risk (liability / amount)</option>
+        </select>
+        <button type="button" class="btn" id="btnWfTest">Run Test</button>
+        <button type="button" class="btn primary" id="btnWfPub">Publish</button>
+      </div>
+      <div class="who"><span class="who-av">KS</span><span><b>Kenji Sato</b><small>Admin</small></span></div>
+    </div>
+    <div class="wf-body">
+      <aside class="wf-lib">
+        <div class="wf-lib-head">Node Library</div>
+        <input class="wf-find" placeholder="Find" disabled>
+        <div class="wf-cat" id="wfLib"></div>
+      </aside>
+      <div class="wf-canvas-wrap">
+        <div class="wf-zoom">110%</div>
+        <div class="wf-stage" id="wfStage"></div>
+      </div>
+      <aside class="wf-cfg">
+        <div class="wf-cfg-head">Configure</div>
+        <div class="cfg-tabs">
+          <button type="button" class="on" data-tab="cfg">Configure</button>
+          <button type="button" data-tab="test">Test Run</button>
+        </div>
+        <div class="cfg-body" id="wfCfg"></div>
+      </aside>
+    </div>
+  </div>
+
+  <p class="footer">Email Autopilot Demo v2.6 ·
+    <button type="button" class="role-nav on" data-role="agent">Agent</button> ·
+    <button type="button" class="role-nav" data-role="supervisor">Supervisor</button> ·
+    <button type="button" class="role-nav" data-role="admin">Admin</button>
+  </p>
+</div>
+<div class="toast" id="toast"></div>
+<div class="log-tab" id="logTab">AI Log <span id="logTabCount"></span></div>
+<div class="log-overlay" id="logOverlay"></div>
+<div class="log-drawer" id="logDrawer">
+  <div class="log-drawer-head"><h2>AI Action Log</h2><button class="log-close" id="logClose">✕</button></div>
+  <div class="log-body" id="logBody"></div>
+</div>
+
+<script>
+const CASE={id:"4821",customer:{name:"Maya Chen",email:"maya.chen@email.com",card:"Visa *4412",customerId:"CUS-88421"},dispute:{amount:"$186.00",merchant:"River Market Grocery",posted:"Aug 16, 2026"},voice:{time:"Aug 18, 2026 · 14:03",agent:"Sarah M.",duration:"8m 42s",ref:"VOICE-SES-20260818-1403-7K2M",summary:["Customer reports $186.00 charge at River Market Grocery as unauthorized.","Card locked immediately · provisional block active.","Dispute case opened · receipt requested for investigation."]},sla:{confirmDue:"Sep 15, 2026",investigateDue:"Nov 12, 2026"}};
+
+const SIG_AVA=`
+
+—
+Ava (AI)
+Meridian Trust Bank · Card Disputes`;
+
+const SIG_PRIYA=`
+
+—
+Priya N.
+Meridian Trust Bank · Card Disputes`;
+
+const ACK_BODY=`Dear Maya,
+
+We confirm receipt of your dispute regarding a $186.00 charge at River Market Grocery on your Visa ending 4412 (Case #4821).
+
+As discussed on your call today at 2:03 PM, your card remains locked while we investigate.
+
+Please reply to this email with a clear photo of your receipt or proof of purchase.
+
+Reg Z acknowledgment: We will investigate and resolve within the timeframes required by law.
+
+Reference: ${CASE.voice.ref}${SIG_AVA}`;
+
+const DRAFT_LIABILITY=`Dear Maya,
+
+Thank you for your patience. Case #4821 remains under active investigation. We cannot assign final liability until the merchant and network review completes.
+
+You are not responsible for paying the disputed $186.00 while the investigation is open. We will notify you in writing of the outcome.
+
+Case #4821`;
+
+const NUDGE_BODY=`Dear Maya,
+
+Thank you — we received your attachment. The image appears blurry and we cannot read the transaction details.
+
+Please reply with a clearer photo of the full receipt showing merchant, date, and amount.
+
+Case #4821${SIG_AVA}`;
+
+const STATUS_BODY=`Dear Maya,
+
+Your dispute (Case #4821) is currently under investigation. We received your documents and our team is reviewing the merchant response.
+
+We will update you when there is a determination. You are not required to pay the disputed amount while investigation is open.
+
+Case #4821${SIG_AVA}`;
+
+const CLOSE_BODY=`Dear Maya,
+
+Your dispute Case #4821 has been resolved in your favor. A provisional credit of $186.00 has been applied to your Visa account ending 4412.
+
+Thank you for providing documentation. If you have questions, reply to this email or call us.
+
+Case #4821 · Closed${SIG_AVA}`;
+
+const PATTERN=["Problem Received","Evidence Requested","Evidence Received","Evidence Confirmed","Investigation","Status Update","Decision","Close"];
+
+function parseTs(s){return new Date(s.replace(" ","T"))}
+function formatDH(ms){const sign=ms<0?"-":"";const abs=Math.abs(ms);const d=Math.floor(abs/864e5);const h=Math.floor((abs%864e5)/36e5);return`${sign}${d}d ${h}h`}
+
+const STAGE_CONFIG=[
+  {target:{d:0,h:6},alertThresholdH:2,alertAction:"Notify owner ASAP"},
+  {target:{d:0,h:6},alertThresholdH:2,alertAction:"Notify owner ASAP"},
+  {target:{d:0,h:8},alertThresholdH:2,alertAction:"Notify owner ASAP"},
+  {target:{d:0,h:8},alertThresholdH:2,alertAction:"Notify owner ASAP"},
+  {target:{d:2,h:0},alertThresholdH:8,alertAction:"Expedite review"},
+  {target:{d:0,h:12},alertThresholdH:4,alertAction:"Request extension"},
+  {target:{d:5,h:3},alertThresholdH:6,alertAction:"Request extension"},
+  {target:{d:0,h:12},alertThresholdH:4,alertAction:"Request extension"},
+];
+const STAGE_TL=[
+  {start:"2026-08-18 14:03:00",end:"2026-08-18 14:03:18"},
+  {start:"2026-08-18 14:03:18",end:"2026-08-18 14:15:03"},
+  {start:"2026-08-18 14:15:03",end:"2026-08-18 16:47:31"},
+  {start:"2026-08-18 16:47:31",end:"2026-08-18 16:48:09"},
+  {start:"2026-08-18 16:48:09",end:"2026-08-20 09:24:01"},
+  {start:"2026-08-20 09:24:01",end:"2026-08-20 09:24:05"},
+  {start:"2026-08-20 09:24:05",end:"2026-08-25 10:58:00"},
+  {start:"2026-08-25 10:58:00",end:"2026-08-25 11:02:19"},
+];
+function stageDeadline(i){const c=STAGE_CONFIG[i];return parseTs(STAGE_TL[i].start).getTime()+(c.target.d*864e5+c.target.h*36e5)}
+
+function channelBadge(c){return c==="VOICE"?`<span class="badge voice">Voice</span>`:`<span class="badge email">Email</span>`}
+function roleBadge(role){
+  if(role==="Customer")return`<span class="badge customer">Customer</span>`;
+  if(role==="Agent")return`<span class="badge agent">Agent</span>`;
+  return`<span class="badge ai">AI</span>`;
+}
+function chipCls(k,v){
+  const s=String(v).toLowerCase();
+  if(k==="Quality"||s.includes("unreadable")||s.includes("denied")||s.includes("cannot")||s.includes("not allowed")||s.includes("no liability")||s.includes("no investigation")||s.includes("auto-send denied"))return"deny";
+  if(s.includes("medium")||s.includes("hand off")||s.includes("waiting")||s.includes("split")||s.includes("park"))return"warn";
+  if(s.includes("sent")||s.includes("low")||s.includes("allow")||s.includes("linked")||s.includes("queued")||s.includes("auto")||s.includes("confirm"))return"ok";
+  return"info";
+}
+function fieldVal(k,v){
+  const tag=k==="Risk"||k==="Permission"||k==="Path"||k==="Status"||k==="Quality";
+  if(Array.isArray(v)){
+    if(tag)return`<div class="et-chips">${v.map(x=>`<span class="et-chip ${chipCls(k,x)}">${x}</span>`).join("")}</div>`;
+    return`<ul class="et-list">${v.map(x=>`<li>${x}</li>`).join("")}</ul>`;
+  }
+  if(tag)return`<span class="et-chip ${chipCls(k,v)}">${v}</span>`;
+  return v;
+}
+function dirBadge(d){
+  if(d==="INBOUND")return`<span class="badge inbound">Inbound</span>`;
+  if(d==="OUTBOUND")return`<span class="badge outbound">Outbound</span>`;
+  if(d==="DRAFT")return`<span class="badge draft-badge">Draft</span>`;
+  return`<span class="badge system">${d}</span>`;
+}
+
+const EVENTS=[
+  {feedLabel:"Called · $186 unauthorized",feedSub:"Voice",maya:true,activeStageIdx:0,headerPattern:"Problem Received",status:"Open · Voice intake",hint:"Voice created the case. Autopilot queued written follow-up.",escalate:false,humanGate:false,asOfTs:"2026-08-18 14:03:45",
+    audit:[
+      {ts:"2026-08-18 14:03:18",mode:"SYSTEM",detail:"Case #4821 created from Voice",stage:"Problem Received",target:"Voice session"},
+      {ts:"2026-08-18 14:03:22",mode:"READ",detail:"Voice summary ingested · card lock",stage:"Problem Received",target:"Voice session"},
+      {ts:"2026-08-18 14:03:45",mode:"AUTO",detail:"Queued REG-Z-ACK-v2.4",stage:"Evidence Requested",target:"Outbound email"}
+    ]},
+  {feedLabel:"Got email · send receipt",feedSub:"Email",maya:true,activeStageIdx:1,headerPattern:"Evidence Requested",status:"Open · Awaiting evidence",hint:"Ava (AI) sent ack with Voice summary. Waiting for receipt.",escalate:false,humanGate:false,asOfTs:"2026-08-18 14:15:03",
+    activity:{ts:"2026-08-18 14:15",channel:"EMAIL",direction:"OUTBOUND",role:"AI",stage:"Evidence Requested",aiSummary:"Ack + receipt checklist sent with Voice context.",subject:"Re: Dispute Case #4821 — Confirmation",body:ACK_BODY,
+      engine:{
+        intake:{Channel:"Email",Direction:"Outbound",Customer:"CUS-88421",Case:"#4821",To:"maya.chen@email.com",From:"Disputes",Trigger:"Voice follow-up"},
+        understand:{Intent:"Acknowledge dispute",Goal:"Get a receipt on file",Risk:"Low",Permission:["Auto-send allowed","No liability language"],Todo:["Send confirmation","Request a receipt"]},
+        orchestrate:{Use:["Case context","Acknowledgment email","Receipt checklist"],Path:"Send automatically"},
+        resolve:{Did:["Sent confirmation","Asked for a receipt"],Status:"Sent"}
+      }},
+    audit:[
+      {ts:"2026-08-18 14:15:02",mode:"AUTO",detail:"Sent REG-Z-ACK-v2.4",stage:"Evidence Requested",target:"Outbound to Maya"},
+      {ts:"2026-08-18 14:15:03",mode:"SYSTEM",detail:"Reg Z clock running",stage:"Evidence Requested",target:"SLA timer"}
+    ]},
+  {feedLabel:"Sent receipt photo",feedSub:"Email",maya:true,activeStageIdx:3,headerPattern:"Evidence Confirmed",status:"Open · Evidence review",hint:"Photo hung on Case #4821. Ava (AI) confirmed receipt and asked for a clearer image.",escalate:false,humanGate:false,asOfTs:"2026-08-18 16:48:09",
+    activityIn:{ts:"2026-08-18 16:47",channel:"EMAIL",direction:"INBOUND",role:"Customer",stage:"Evidence Received",aiSummary:"Receipt photo arrived on Case #4821.",subject:"Re: Dispute Case #4821",body:"Hi, I attached my receipt from the grocery store. Please let me know what happens next.\n\n— Maya",
+      attachment:{name:"receipt_photo.jpg",size:"842 KB",quality:"FAIL · OCR 34%",warn:true},
+      engine:{
+        intake:{Channel:"Email",Direction:"Inbound",Customer:"CUS-88421",From:"maya.chen@email.com",Subject:"Re: Dispute Case #4821",Attachment:"receipt_photo.jpg · 842 KB",Clues:["#4821","*4412","$186"]},
+        understand:{Intent:"Submit evidence",Goal:"Attach document to this case",Risk:"Low",Permission:["Auto process allowed","No investigation claim"],Todo:["Match case","Check photo quality"]},
+        orchestrate:{Use:["Case matching","Document quality check"],Path:"Handle automatically"},
+        resolve:{Did:["Linked to Case #4821","Not a new ticket"],Evidence:"Received",Quality:"Unreadable",Status:"Linked"}
+      }},
+    activityOut:{ts:"2026-08-18 16:48",channel:"EMAIL",direction:"OUTBOUND",role:"AI",stage:"Evidence Confirmed",aiSummary:"Confirmed receipt on file; asked for a clearer photo.",body:NUDGE_BODY,
+      engine:{
+        intake:{Channel:"Email",Direction:"Outbound",Customer:"CUS-88421",Case:"#4821",Related:"receipt_photo.jpg",Quality:"Unreadable"},
+        understand:{Intent:"Evidence follow-up",Goal:"Get a usable receipt",Risk:"Low",Permission:["Confirm receipt","Cannot claim a decision"],Todo:["Ask for a clearer photo"]},
+        orchestrate:{Use:["Document review","Follow-up email"],Path:"Send automatically"},
+        resolve:{Did:["Confirmed on file (unusable)","Asked for a clearer photo"],Status:"Sent"}
+      }},
+    audit:[
+      {ts:"2026-08-18 16:47:31",mode:"SYSTEM",detail:"Linked to Case #4821 · NOT new ticket",stage:"Evidence Received",target:"Inbound from Maya"},
+      {ts:"2026-08-18 16:47:33",mode:"READ",detail:"OCR 34% · quality FAIL",stage:"Evidence Confirmed",target:"receipt_photo.jpg"},
+      {ts:"2026-08-18 16:48:09",mode:"AUTO",detail:"DOC-NUDGE-v1.2 sent",stage:"Evidence Confirmed",target:"Outbound to Maya"}
+    ]},
+  {feedLabel:"Asked · who’s responsible",feedSub:"Email",maya:true,activeStageIdx:4,headerPattern:"Investigation",status:"Open · Investigation",hint:"Ava (AI) sent progress. Liability parked for a person.",escalate:true,humanGate:false,asOfTs:"2026-08-20 09:22:14",
+    activityIn:{ts:"2026-08-20 09:22",channel:"EMAIL",direction:"INBOUND",role:"Customer",stage:"Investigation",aiSummary:"Maya asks for progress and who is responsible.",body:"It's been two days. Why is there still no progress on my dispute? Who is responsible for this $186 charge?\n\n— Maya",
+      engine:{
+        intake:{Channel:"Email",Direction:"Inbound",Customer:"CUS-88421",Case:"#4821",From:"maya.chen@email.com",Questions:["Progress","Who pays $186"]},
+        understand:{Intent:"Status + liability",Goal:"Know progress and who is responsible",Risk:"Medium",Permission:["Status reply allowed","Liability claim denied"],Todo:["Answer progress","Park who-pays"]},
+        orchestrate:{Use:["Case lookup","Status from core","Human review for liability"],Path:"Split"},
+        resolve:{Did:["Kept on Case #4821"],Queued:["Status reply","Liability draft"],Status:"Split"}
+      }},
+    activityOut:{ts:"2026-08-20 09:24",channel:"EMAIL",direction:"OUTBOUND",role:"AI",stage:"Investigation",aiSummary:"Progress update sent; liability held for an agent.",body:STATUS_BODY,
+      engine:{
+        intake:{Channel:"Email",Direction:"Outbound",Customer:"CUS-88421",Case:"#4821",Core:"Investigation open"},
+        understand:{Intent:"Status update",Goal:"Tell Maya it is in progress",Risk:"Low",Permission:["Say in progress","Cannot say who pays"],Todo:["Send status only"]},
+        orchestrate:{Use:["Core status","Status email"],Path:"Send automatically"},
+        resolve:{Did:["Sent progress update"],Hold:"Liability for agent",Status:"Sent"}
+      }},
+    audit:[
+      {ts:"2026-08-20 09:22:14",mode:"SYSTEM",detail:"Inbound: status + liability",stage:"Investigation",target:"Inbound from Maya"},
+      {ts:"2026-08-20 09:22:18",mode:"READ",detail:"Core: INVESTIGATION",stage:"Investigation",target:"Core system"},
+      {ts:"2026-08-20 09:24:01",mode:"AUTO",detail:"STATUS-INV-v1.0 sent",stage:"Investigation",target:"Outbound to Maya"},
+      {ts:"2026-08-20 09:24:05",mode:"DRAFT",detail:"LIABILITY-v1.1 queued",stage:"Status Update",target:"Human Gate"}
+    ]},
+  {feedLabel:"Waiting on a person",feedSub:"Email",maya:false,activeStageIdx:5,headerPattern:"Status Update",status:"Open · Human Gate",hint:"Priya N. must Approve & Send. Ava (AI) stopped sending.",escalate:true,humanGate:true,asOfTs:"2026-08-20 09:24:05",
+    activityDraft:{ts:"2026-08-20 09:24:05",channel:"EMAIL",direction:"DRAFT",role:"AI",stage:"Status Update",aiSummary:"Liability draft waiting for agent approval.",body:DRAFT_LIABILITY+SIG_PRIYA,
+      engine:{
+        intake:{Channel:"Email",Direction:"Draft",Customer:"CUS-88421",Case:"#4821",Question:"Who is responsible for $186"},
+        understand:{Intent:"Liability explanation",Goal:"Answer who pays without admitting fault",Risk:"Medium",Permission:["Auto-send denied"],Todo:["Draft","Wait for agent"]},
+        orchestrate:{Use:["Draft email","Human approval"],Path:"Hand off to agent"},
+        resolve:{Did:["Draft parked"],Owner:"Agent",Status:"Waiting approval"}
+      }},
+    audit:[
+      {ts:"2026-08-20 09:24:05",mode:"DRAFT",detail:"LIABILITY-v1.1 prepared",stage:"Status Update",target:"Draft email"}
+    ]},
+  {feedLabel:"Credited $186",feedSub:"Email",maya:true,activeStageIdx:6,headerPattern:"Decision",status:"Closed · Resolved",hint:"Core RESOLVED. Ava (AI) sent closure.",escalate:false,humanGate:false,asOfTs:"2026-08-25 10:58:00",
+    activity:{ts:"2026-08-25 11:02",channel:"EMAIL",direction:"OUTBOUND",role:"AI",stage:"Decision",aiSummary:"Closure email: provisional credit applied.",subject:"Case #4821 — Resolved",body:CLOSE_BODY,
+      engine:{
+        intake:{Channel:"Email",Direction:"Outbound",Customer:"CUS-88421",Case:"#4821",Core:"Resolved",Credit:"$186.00 posted"},
+        understand:{Intent:"Case closure",Goal:"Notify credit applied",Risk:"Low",Permission:["Notify allowed","Amount from core only"],Todo:["Send closure"]},
+        orchestrate:{Use:["Core outcome","Closure email"],Path:"Send automatically"},
+        resolve:{Did:["Sent credit confirmation"],Status:"Sent"}
+      }},
+    audit:[
+      {ts:"2026-08-25 10:58:00",mode:"READ",detail:"Core RESOLVED · $186.00",stage:"Decision",target:"Core system"},
+      {ts:"2026-08-25 11:02:18",mode:"AUTO",detail:"CLOSE-RES-v1.0 sent",stage:"Close",target:"Outbound to Maya"}
+    ]},
+  {feedLabel:"Closed",feedSub:"Email",maya:true,activeStageIdx:7,headerPattern:"Close",status:"Closed · Complete",hint:"Walkthrough complete. Open AI Log for full trail.",escalate:false,humanGate:false,asOfTs:"2026-08-25 11:02:19",resolved:true,
+    audit:[
+      {ts:"2026-08-25 11:02:19",mode:"SYSTEM",detail:"Pattern complete · closed",stage:"Close",target:"Case #4821"}
+    ]},
+];
+
+let cur=-1,draftApproved=false,selectedStreamIdx=-1;
+
+function allAudit(){
+  const e=[];
+  for(let i=0;i<=cur;i++) EVENTS[i].audit.forEach(a=>e.push({...a,eventIdx:i,who:a.mode==="AGENT"?"Priya N.":"Ava (AI)"}));
+  if(draftApproved&&cur>=4) e.push({ts:"2026-08-20 11:18:42",mode:"AGENT",who:"Priya N.",detail:"Approved LIABILITY-v1.1",stage:"Status Update",target:"Outbound to Maya",eventIdx:4});
+  e.sort((a,b)=>b.ts.localeCompare(a.ts));
+  return e;
+}
+
+function getSla(){
+  const ev=cur>=0?EVENTS[cur]:null;
+  if(!ev)return{health:"On track",timeLeft:"—",alert:null};
+  const si=ev.activeStageIdx,asOf=parseTs(ev.asOfTs).getTime(),dl=stageDeadline(si),left=dl-asOf,tl=formatDH(left);
+  const cfg=STAGE_CONFIG[si],th=cfg.alertThresholdH*36e5;
+  const isAlert=left<=th&&left>=0,isBreach=left<0;
+  let health="On track",alert=null;
+  if(isBreach)health="Breach";else if(isAlert)health="At risk";
+  if(isAlert||isBreach)alert={title:isBreach?"BREACH":"ALERT",text:`${cfg.alertAction} · ${PATTERN[si]} · Left: ${tl}`};
+  return{health,timeLeft:tl,alert};
+}
+
+function renderPattern(){
+  const ev=cur>=0?EVENTS[cur]:null,ai=ev?ev.activeStageIdx:-1;
+  document.getElementById("patternTrack").innerHTML=PATTERN.map((n,i)=>{
+    const c=i<ai?"done":i===ai?"active":"";
+    return`<div class="pattern-step ${c}"><div class="pattern-dot"></div><div class="name">${n}</div></div>`;
+  }).join("");
+  const sla=getSla();
+  const pill=document.getElementById("slaPill");
+  pill.textContent=`SLA: ${sla.health} · ${sla.timeLeft}`;
+  pill.className="sla-pill "+(sla.health==="On track"?"ok":sla.health==="At risk"?"warn":"breach");
+  const ab=document.getElementById("slaAlertBar");
+  if(sla.alert){ab.classList.add("show");ab.innerHTML=`<span class="atitle">${sla.alert.title}</span> — ${sla.alert.text}`}
+  else{ab.classList.remove("show");ab.innerHTML=""}
+}
+
+function renderFeed(){
+  const visible=EVENTS.map((e,i)=>({e,i})).filter(x=>x.e.maya!==false);
+  document.getElementById("eventFeed").innerHTML=visible.map(({e,i},n)=>{
+    const c=i<cur?"done":i===cur?"active":"future";
+    const m=i<cur?"✓":i===cur?"●":n+1;
+    return`<div class="event-item ${c}"><div class="event-marker">${m}</div><div><div class="ev-label">${e.feedLabel}</div><div class="ev-sub">${e.feedSub}</div></div></div>`;
+  }).join("");
+}
+
+function getStreamItems(){
+  const items=[];
+  items.push({id:"voice",ts:"2026-08-18 14:03",channel:"VOICE",direction:"INBOUND",role:"Agent",stage:"Problem Received",aiSummary:"Voice intake: unauthorized charge; case opened.",body:CASE.voice.summary.map(s=>`· ${s}`).join("\n"),eventIdx:0,
+    engine:{
+      intake:{Channel:"Voice",Direction:"Inbound",Customer:"CUS-88421",Session:CASE.voice.ref,Agent:"Sarah M.",Card:"Visa *4412",Amount:"$186.00",Merchant:"River Market Grocery"},
+      understand:{Intent:"Unauthorized charge dispute",Goal:"Lock card and open a case",Risk:"Low",Permission:["Card lock allowed","Liability not allowed"],Todo:["Open case","Queue written confirmation"]},
+      orchestrate:{Use:["Case filing","Card lock","Written follow-up"],Path:"Auto after the call"},
+      resolve:{Did:["Opened Case #4821","Card locked"],Next:"Confirmation email queued",Status:"Queued"}
+    }});
+  let draftDone=false;
+  for(let i=0;i<=cur;i++){
+    const e=EVENTS[i];
+    if(e.activity) items.push({...e.activity,id:`ev${i}-act`,eventIdx:i});
+    if(e.activityIn) items.push({...e.activityIn,id:`ev${i}-in`,eventIdx:i});
+    if(e.activityOut) items.push({...e.activityOut,id:`ev${i}-out`,eventIdx:i});
+    if(e.activityDraft&&!draftApproved) items.push({...e.activityDraft,id:`ev${i}-draft`,eventIdx:i});
+    if(draftApproved&&i>=4&&!draftDone){items.push({id:"draft-sent",ts:"2026-08-20 11:18",channel:"EMAIL",direction:"OUTBOUND",role:"Agent",stage:"Status Update",aiSummary:"Agent approved and sent the liability explanation.",body:DRAFT_LIABILITY+SIG_PRIYA,eventIdx:4,
+      engine:{
+        intake:{Channel:"Email",Direction:"Outbound",Customer:"CUS-88421",Case:"#4821",ApprovedBy:"Priya N."},
+        understand:{Intent:"Liability explanation",Goal:"Send reviewed reply",Risk:"Low",Permission:["Send allowed after approval"],Todo:["Send draft"]},
+        orchestrate:{Use:["Agent send","Release auto-hold"],Path:"Send as agent"},
+        resolve:{Did:["Sent liability explanation"],Owner:"Agent",Status:"Sent"}
+      }});draftDone=true}
+  }
+  items.sort((a,b)=>String(b.ts).localeCompare(String(a.ts)));
+  return items;
+}
+
+function stageBadgeCls(item){
+  const ev=item.eventIdx!=null?EVENTS[item.eventIdx]:null;
+  if(!ev)return"stage-done";
+  const ai=cur>=0?EVENTS[cur].activeStageIdx:-1;
+  return ev.activeStageIdx<ai?"stage-done":"stage-active";
+}
+function renderStream(){
+  const items=getStreamItems();
+  document.getElementById("streamList").innerHTML=items.map((item,idx)=>{
+    const cls=[item.direction==="INBOUND"?"inbound":item.direction==="OUTBOUND"?"outbound":item.direction==="DRAFT"?"draft-item":"system-item"];
+    if(idx===selectedStreamIdx) cls.push("selected");
+    const badges=[item.stage?`<span class="badge ${stageBadgeCls(item)}">${item.stage}</span>`:"",channelBadge(item.channel),dirBadge(item.direction),roleBadge(item.role)].join("");
+    const tags=item.tags&&item.tags.length?`<div class="tag-row">${item.tags.map(t=>`<span class="tag">${t}</span>`).join("")}</div>`:"";
+    return`<div class="stream-item ${cls.join(" ")}" data-idx="${idx}">
+      <div class="actor-row">${badges}</div>
+      <div class="ts">${item.ts}</div>
+      <div class="stream-summary">${item.aiSummary||""}</div>
+      ${tags}
+    </div>`;
+  }).join("");
+  document.querySelectorAll("#streamList .stream-item").forEach(el=>{
+    el.addEventListener("click",()=>{
+      selectedStreamIdx=parseInt(el.dataset.idx);
+      renderStream();
+      renderDetail();
+    });
+  });
+}
+
+function renderDetail(){
+  const dp=document.getElementById("detailPanel");
+  const items=getStreamItems();
+  if(selectedStreamIdx<0||selectedStreamIdx>=items.length){
+    dp.innerHTML=`<div class="detail-empty">Select an activity card to view details.</div>`;
+    return;
+  }
+  const item=items[selectedStreamIdx];
+  const ev=item.eventIdx!=null?EVENTS[item.eventIdx]:null;
+  let html="";
+
+  if(item.engine){
+    const kv=obj=>Object.entries(obj||{}).filter(([,v])=>v!=null&&v!==""&&!(Array.isArray(v)&&!v.length)).map(([k,v])=>`<div class="et-k">${k}</div><div class="et-v">${fieldVal(k,v)}</div>`).join("");
+    const eng=item.engine;
+    html+=`<div class="detail-section"><div class="detail-section-head">Execution Trace</div><div class="et-flow">
+      <div class="et-step intake"><div class="et-step-name">INTAKE</div><div class="et-kv">${kv(eng.intake)}</div></div>
+      <div class="et-step understand"><div class="et-step-name">UNDERSTAND</div><div class="et-kv">${kv(eng.understand)}</div></div>
+      <div class="et-step orchestrate"><div class="et-step-name">ORCHESTRATE</div><div class="et-kv">${kv(eng.orchestrate)}</div></div>
+      <div class="et-step resolve"><div class="et-step-name">RESOLVE</div><div class="et-kv">${kv(eng.resolve)}</div></div>
+    </div></div>`;
+  }
+
+  html+=`<div class="detail-section"><div class="detail-section-head">Content</div>`;
+  if(item.subject) html+=`<div style="font-size:10px;color:var(--muted);font-family:var(--mono);margin-bottom:4px">Subject: ${item.subject}</div>`;
+  if(item.attachment) html+=`<div class="attach ${item.attachment.warn?"warn":""}">📎 ${item.attachment.name} · ${item.attachment.size} · ${item.attachment.quality}</div>`;
+  if(item.body) html+=`<pre class="detail-pre">${item.body}</pre>`;
+  html+=`</div>`;
+
+  if(ev&&ev.humanGate&&!draftApproved&&item.direction==="DRAFT"){
+    html+=`<div class="draft-box"><div class="db-head">DRAFT · Priya N. must approve</div><div style="padding:8px 10px;font-size:11px;color:var(--amber)">Ava (AI) stopped sending. Click <strong>Approve & Send</strong> above.</div></div>`;
+  }
+
+  dp.innerHTML=html;
+}
+
+function renderAuditDrawer(){
+  const entries=allAudit();
+  document.getElementById("logTabCount").textContent=entries.length?`(${entries.length})`:"";
+  document.getElementById("logBody").innerHTML=entries.map(e=>{
+    const ctx=[];
+    if(e.stage)ctx.push(`<span class="le-stage">${e.stage}</span>`);
+    if(e.target)ctx.push(`<span class="le-target">${e.target}</span>`);
+    return`<div class="log-entry">
+      ${ctx.length?`<div class="le-ctx">${ctx.join("")}</div>`:""}
+      <span class="le-ts">${e.ts}</span>
+      <span class="le-who ${e.mode==="AGENT"?"agent":""}">${e.who||"Ava (AI)"}</span>
+      <span class="le-mode ${e.mode}">${e.mode}</span>
+      <span class="le-detail">${e.detail}</span>
+    </div>`;
+  }).join("")||`<div class="log-entry"><span class="le-ts">—</span><span class="le-detail">No events yet</span></div>`;
+}
+
+function renderActions(){
+  const ev=cur>=0?EVENTS[cur]:null,atEnd=cur>=EVENTS.length-1,onGate=ev&&ev.humanGate&&!draftApproved;
+  document.getElementById("actionHint").textContent=ev?ev.hint:"Click Next Event to begin.";
+  document.getElementById("btnNext").disabled=atEnd||onGate;
+  document.getElementById("btnNext").textContent=atEnd?"Complete":"Next Event →";
+  document.getElementById("btnApprove").disabled=!onGate;
+  document.getElementById("btnEscalate").disabled=!ev||!ev.escalate;
+  const pill=document.getElementById("caseStatus");
+  if(ev){pill.textContent=ev.status;pill.classList.toggle("resolved",!!ev.resolved);document.getElementById("headerTitle").textContent=`CASE #4821 · Maya Chen · ${ev.headerPattern}`}
+  else{pill.textContent="Open";pill.classList.remove("resolved");document.getElementById("headerTitle").textContent="CASE #4821 · Maya Chen · Card Dispute"}
+}
+
+function render(){
+  renderPattern();renderFeed();renderStream();renderDetail();renderAuditDrawer();renderActions();
+}
+
+const WF_LIB=[
+  {cat:"Trigger",items:[{id:"t-email",title:"Email",note:"Inbound mailbox"},{id:"t-voice",title:"Voice",note:"Case from call"},{id:"t-case",title:"Case Update",note:"Core / CRM"}]},
+  {cat:"Understand",items:[{id:"u-intent",title:"Intent",note:"Dispute type"},{id:"u-entity",title:"Entity",note:"Card · amount"},{id:"u-risk",title:"Risk",note:"Fraud / abuse"}]},
+  {cat:"Decision",items:[{id:"d-state",title:"Case State",note:"Open / waiting"},{id:"d-sla",title:"SLA",note:"Reg Z clocks"},{id:"d-policy",title:"Policy",note:"Bank rules"}]},
+  {cat:"Action",items:[{id:"a-auto",title:"AUTO",note:"Send"},{id:"a-read",title:"READ",note:"Facts only"},{id:"a-draft",title:"DRAFT",note:"Wait human"},{id:"a-block",title:"BLOCK",note:"No money"}]},
+  {cat:"Control",items:[{id:"c-gate",title:"Human Gate",note:"Approval"},{id:"c-note",title:"Notify",note:"Customer / agent"},{id:"c-esc",title:"Escalate",note:"Voice queue"}]}
+];
+
+function WFN(o){return Object.assign({state:"Live",w:176,h:74,knowledge:"Card Dispute package · Meridian Trust",connector:"Talkdesk Case + core card",approval:"Off",audit:"Every step is auditable."},o)}
+const SX=342;
+const WF_NODES=[
+  WFN({id:"email",title:"Email Received",cond:"Mailbox = Card Disputes",mode:"READ",sla:"—",owner:"Channel",x:SX,y:8,rules:"IF inbound email AND product_line = card_dispute THEN enter this bank workflow.",permission:"READ identity. Do not send."}),
+  WFN({id:"match",title:"Match Existing Case",cond:"Customer + card + 14d",mode:"READ",sla:"15m",owner:"Intake",x:SX,y:100,rules:"Attach to the open case. Never open a second ticket for the same dispute.",permission:"READ only"}),
+  WFN({id:"intent",title:"Identify Intent",cond:"Dispute follow-up / new / other",mode:"READ",sla:"—",owner:"Understand",x:SX,y:192,rules:"Classify intent. If not a card dispute, exit package.",permission:"READ. No outbound."}),
+  WFN({id:"state",title:"Check Case State",cond:"Open · Investigating · Waiting",mode:"READ",sla:"Reg Z",owner:"Orchestrate",x:SX,y:284,kind:"cond",rules:"Read case state from core. Do not invent progress.",permission:"READ status from core only"}),
+  WFN({id:"docs",title:"Check Required Documents",cond:"Receipt present and readable?",mode:"READ",sla:"8h",owner:"Orchestrate",x:SX,y:376,kind:"cond",rules:"IF missing or unreadable THEN Request Documents. IF complete THEN continue.",permission:"READ evidence quality"}),
+  WFN({id:"reqdocs",title:"Request Documents",cond:"Missing → AUTO checklist / nudge",mode:"AUTO",sla:"6h",owner:"Ava (AI)",x:24,y:376,w:148,kind:"branch",rules:"AUTO ack + receipt checklist, or doc-nudge. No investigation claim.",permission:"AUTO on this branch only"}),
+  WFN({id:"readstat",title:"Read Case Status",cond:"Authoritative status from core",mode:"READ",sla:"—",owner:"Ava (AI)",x:SX,y:490,rules:"Status text may only come from core.",permission:"READ. No invented progress."}),
+  WFN({id:"determine",title:"Determine Action",cond:"Policy table · amount · liability",mode:"READ",sla:"Stage",owner:"Orchestrate",x:SX,y:582,kind:"cond",rules:"AUTO send · READ return status · DRAFT human review · BLOCK if money or liability.",permission:"Cannot credit the card"}),
+  WFN({id:"send",title:"Send Response",cond:"AUTO",mode:"AUTO",sla:"12h",owner:"Ava (AI)",x:16,y:700,w:148,kind:"branch",rules:"Send customer email from approved template.",permission:"AUTO send"}),
+  WFN({id:"ret",title:"Return Status",cond:"READ",mode:"READ",sla:"—",owner:"Ava (AI)",x:188,y:700,w:148,kind:"branch",rules:"Return core status to the thread. Do not add new claims.",permission:"READ"}),
+  WFN({id:"rev",title:"Human Review",cond:"DRAFT",mode:"DRAFT",sla:"12h",owner:"Agent",x:360,y:700,w:148,kind:"branch",rules:"Write draft. Do not send until a person approves.",permission:"DRAFT",approval:"On"}),
+  WFN({id:"blk",title:"Escalate",cond:"BLOCK",mode:"BLOCK",sla:"—",owner:"Agent",x:532,y:700,w:148,kind:"branch",rules:"IF amount movement OR liability THEN BLOCK. Human review required.",permission:"BLOCK",approval:"On"}),
+  WFN({id:"update",title:"Update Case",cond:"Write outcome to case",mode:"READ",sla:"—",owner:"System",x:SX,y:820,rules:"Update case fields after an allowed action.",permission:"WRITE case fields, not money"}),
+  WFN({id:"audit",title:"Audit Log",cond:"Every outbound is logged",mode:"READ",sla:"—",owner:"System",x:SX,y:912,rules:"Store actor, mode, template, core source.",permission:"WRITE audit only"})
+];
+
+const WF_EDGES=[
+  {a:"email",b:"match"},{a:"match",b:"intent"},{a:"intent",b:"state"},{a:"state",b:"docs"},
+  {a:"docs",b:"reqdocs",dir:"h",label:"Missing"},
+  {a:"docs",b:"readstat",label:"Complete"},
+  {a:"readstat",b:"determine"},
+  {a:"determine",b:"send",dir:"fan",label:"AUTO"},
+  {a:"determine",b:"ret",dir:"fan",label:"READ"},
+  {a:"determine",b:"rev",dir:"fan",label:"DRAFT"},
+  {a:"determine",b:"blk",dir:"fan",label:"BLOCK"},
+  {a:"send",b:"update"},{a:"ret",b:"update"},
+  {a:"update",b:"audit"}
+];
+
+let wfSel="docs", wfLibSel=null, roleView="agent", wfTab="cfg", wfMark={}, wfLogs=[], wfResult="", wfTimer=null;
+
+function wfNodeById(id){return WF_NODES.find(n=>n.id===id)}
+function nw(n){return n.w||176}
+function nh(n){return n.h||74}
+function ncx(n){return n.x+nw(n)/2}
+function ncy(n){return n.y+nh(n)/2}
+
+function edgeSvg(e){
+  const A=wfNodeById(e.a),B=wfNodeById(e.b);
+  let x1,y1,x2,y2,d,lx,ly;
+  if(e.dir==="h"){
+    x1=A.x;y1=ncy(A);x2=B.x+nw(B);y2=ncy(B);
+    const mx=(x1+x2)/2;
+    d=`M${x1} ${y1} L${mx} ${y1} L${mx} ${y2} L${x2} ${y2}`;
+    lx=mx;ly=y1-8;
+  }else if(e.dir==="fan"){
+    x1=ncx(A);y1=A.y+nh(A);x2=ncx(B);y2=B.y;
+    const mid=y1+18;
+    d=`M${x1} ${y1} L${x1} ${mid} L${x2} ${mid} L${x2} ${y2}`;
+    lx=(x1+x2)/2;ly=mid-6;
+  }else{
+    x1=ncx(A);y1=A.y+nh(A);x2=ncx(B);y2=B.y;
+    const mid=(y1+y2)/2;
+    d=`M${x1} ${y1} L${x1} ${mid} L${x2} ${mid} L${x2} ${y2}`;
+    lx=x1+8;ly=mid-4;
+  }
+  const lab=e.label?`<text x="${lx}" y="${ly}" font-size="10" fill="#6b7280" text-anchor="middle">${e.label}</text>`:"";
+  return `<path d="${d}" fill="none" stroke="#c5cbd4" stroke-width="1.6" marker-end="url(#arr)"/>${lab}`;
+}
+
+function renderWfLib(){
+  const el=document.getElementById("wfLib");
+  if(!el)return;
+  el.innerHTML=WF_LIB.map(g=>`<h4>${g.cat}</h4>`+g.items.map(it=>`<div class="lib-item${wfLibSel===it.id?" on":""}" data-lib="${it.id}"><span>${it.title}</span><small>${it.note}</small></div>`).join("")).join("");
+  el.querySelectorAll(".lib-item").forEach(n=>{
+    n.onclick=()=>{wfLibSel=n.dataset.lib;wfTab="cfg";setCfgTab();renderWfLib();renderWfCfgPalette()};
+  });
+}
+
+function renderWfCanvas(){
+  const stage=document.getElementById("wfStage");
+  if(!stage)return;
+  const lines=WF_EDGES.map(edgeSvg).join("");
+  const nodes=WF_NODES.map(n=>{
+    const run=wfMark[n.id]||"";
+    const cls=`${n.kind==="cond"?" cond":""}${n.kind==="branch"?" branch":""}${wfSel===n.id?" on":""}${run?" "+run:""}`;
+    return `<div class="wn${cls}" data-id="${n.id}" style="left:${n.x}px;top:${n.y}px;width:${nw(n)}px">
+      <div class="wt">${n.title}</div>
+      <div class="wm">${n.cond}</div>
+      <div class="wp"><span>${n.mode}</span><span>${n.sla}</span><span>${n.owner}</span></div>
+    </div>`;
+  }).join("");
+  stage.innerHTML=`<svg class="wf-edge" viewBox="0 0 860 1040"><defs><marker id="arr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6" fill="#c5cbd4"/></marker></defs>${lines}</svg>${nodes}`;
+  stage.querySelectorAll(".wn").forEach(el=>{
+    el.onclick=()=>{wfSel=el.dataset.id;wfLibSel=null;wfTab="cfg";setCfgTab();renderWfLib();renderWfCanvas();renderWfCfg()};
+  });
+}
+
+function renderWfCfg(){
+  const box=document.getElementById("wfCfg");
+  if(!box)return;
+  if(wfTab==="test"){renderWfExec();return}
+  const n=wfNodeById(wfSel);
+  if(!n){box.innerHTML=`<p style="font-size:12px;color:var(--muted)">Select a node.</p>`;return}
+  box.innerHTML=`
+    <div class="cfg-field"><label>Node</label><div class="val">${n.title} · ${n.state}</div></div>
+    <div class="cfg-field"><label>Rules / Conditions</label><textarea readonly>${n.rules}</textarea></div>
+    <div class="cfg-field"><label>Knowledge Source</label><div class="val">${n.knowledge}</div></div>
+    <div class="cfg-field"><label>System Connector</label><div class="val">${n.connector}</div></div>
+    <div class="cfg-field"><label>AI Permission</label><div class="val">${n.permission}</div></div>
+    <div class="cfg-field"><label>Human Approval</label><div class="val">${n.approval}</div></div>
+    <div class="cfg-field"><label>SLA / Escalation</label><div class="val">${n.slaRule||n.sla}</div></div>
+    <div class="cfg-field"><label>Audit Policy</label><div class="val">${n.audit}</div></div>
+    <p style="margin-top:10px;font-size:10px;color:var(--faint)">Bank package for every Card Dispute case. Run Test uses Maya #4821 as a fixture.</p>`;
+}
+
+function renderWfCfgPalette(){
+  document.getElementById("wfCfg").innerHTML=`<p style="font-size:12px;color:var(--muted)">Palette node. Production would drop this onto the canvas. This demo inspects the published graph — click a canvas node.</p>`;
+}
+
+function renderWfExec(){
+  const box=document.getElementById("wfCfg");
+  const lines=wfLogs.length?wfLogs.map(l=>`<div class="ex-line ${l.k}">${l.s}</div>`).join(""):`<p style="font-size:12px;color:var(--muted)">Click Run Test to execute fixture Case #4821 on this published workflow.</p>`;
+  const res=wfResult?`<div class="ex-result">${wfResult}</div>`:"";
+  box.innerHTML=`<div style="font-size:11px;color:var(--muted);margin-bottom:8px">Fixture · Maya Chen · Case #4821</div>${lines}${res}`;
+}
+
+const HAPPY_RUN=[
+  {id:"email",k:"ok",s:"Email received"},
+  {id:"match",k:"ok",s:"Matched Case #4821"},
+  {id:"intent",k:"ok",s:"Intent: Dispute Follow-up"},
+  {id:"state",k:"ok",s:"Case Status: Investigation"},
+  {id:"docs",k:"ok",s:"Documents: Receipt received"},
+  {id:"readstat",k:"step",s:"READ: Retrieve authoritative status"},
+  {id:"determine",k:"ok",s:"Determine Action"},
+  {id:"send",k:"step",s:"AUTO: Send status update"},
+  {id:"update",k:"ok",s:"Case updated"},
+  {id:"audit",k:"ok",s:"Audit logged"}
+];
+const HAPPY_SKIP=["reqdocs","ret","rev","blk"];
+const RISK_RUN=[
+  {id:"email",k:"ok",s:"Email received"},
+  {id:"match",k:"ok",s:"Matched Case #4821"},
+  {id:"intent",k:"ok",s:"Intent: Dispute Follow-up"},
+  {id:"state",k:"ok",s:"Case Status: Investigation"},
+  {id:"docs",k:"ok",s:"Documents: Receipt received"},
+  {id:"readstat",k:"step",s:"READ: Retrieve authoritative status"},
+  {id:"determine",k:"risk",s:"Amount / liability condition met"},
+  {id:"blk",k:"risk",s:"BLOCK → Human Review Required"},
+  {id:"audit",k:"ok",s:"Audit logged"}
+];
+const RISK_SKIP=["reqdocs","send","ret","rev","update"];
+
+function setCfgTab(){
+  document.querySelectorAll("#viewAdmin .cfg-tabs button").forEach(b=>b.classList.toggle("on",b.dataset.tab===(wfTab==="test"?"test":"cfg")));
+}
+
+function runWfTest(kind){
+  if(wfTimer)clearTimeout(wfTimer);
+  const steps=kind==="risk"?RISK_RUN:HAPPY_RUN;
+  const skip=kind==="risk"?RISK_SKIP:HAPPY_SKIP;
+  wfTab="test";wfLogs=[];wfResult="";wfMark={};
+  skip.forEach(id=>wfMark[id]="skip");
+  setCfgTab();renderWfCanvas();renderWfExec();
+  let i=0;
+  const tick=()=>{
+    if(i>=steps.length){
+      wfResult=kind==="risk"?"Result: BLOCK → Human Review Required":"Result: Resolved / No Human Takeover Required";
+      renderWfCanvas();renderWfExec();
+      return;
+    }
+    const st=steps[i];
+    Object.keys(wfMark).forEach(id=>{if(wfMark[id]==="run")wfMark[id]="done"});
+    wfMark[st.id]="run";
+    wfLogs.push({k:st.k,s:st.s});
+    wfSel=st.id;
+    renderWfCanvas();
+    renderWfExec();
+    const el=document.querySelector(`.wn[data-id="${st.id}"]`);
+    if(el)el.scrollIntoView({block:"center",behavior:"smooth",inline:"center"});
+    i++;
+    wfTimer=setTimeout(()=>{
+      wfMark[st.id]="done";
+      renderWfCanvas();
+      tick();
+    },520);
+  };
+  tick();
+}
+
+function showToast(msg){
+  const t=document.getElementById("toast");
+  t.textContent=msg;
+  t.classList.add("show");
+  setTimeout(()=>t.classList.remove("show"),2800);
+}
+
+function renderAdmin(){
+  renderWfLib();renderWfCanvas();renderWfCfg();setCfgTab();
+}
+
+function setRole(role){
+  roleView=role;
+  document.querySelectorAll(".role-nav").forEach(b=>b.classList.toggle("on",b.dataset.role===role));
+  document.getElementById("viewAgent").classList.toggle("on",role==="agent");
+  document.getElementById("viewSupervisor").classList.toggle("on",role==="supervisor");
+  document.getElementById("viewAdmin").classList.toggle("on",role==="admin");
+  document.getElementById("logTab").style.display=role==="agent"?"":"none";
+  if(role==="admin")renderAdmin();
+}
+document.querySelectorAll(".role-nav").forEach(b=>b.addEventListener("click",()=>setRole(b.dataset.role)));
+document.getElementById("btnWfTest").addEventListener("click",()=>runWfTest(document.getElementById("wfFixture").value));
+document.getElementById("btnWfPub").addEventListener("click",()=>showToast("v1.4 is already published for Meridian Trust Card Disputes. Demo does not write a new version."));
+document.addEventListener("keydown",e=>{
+  if(e.metaKey||e.ctrlKey||e.altKey)return;
+  const t=e.target;
+  if(t&&(t.tagName==="INPUT"||t.tagName==="TEXTAREA"||t.tagName==="SELECT"||t.isContentEditable))return;
+  if(e.key==="1")setRole("agent");
+  if(e.key==="2")setRole("supervisor");
+  if(e.key==="3")setRole("admin");
+});
+document.querySelectorAll("#viewAdmin .cfg-tabs button").forEach(b=>{
+  b.addEventListener("click",()=>{
+    wfTab=b.dataset.tab==="test"?"test":"cfg";
+    setCfgTab();
+    renderWfCfg();
+  });
+});
+
+function selectEarliestForEvent(eventIdx){
+  const items=getStreamItems();
+  let best=-1,bestTs=null;
+  items.forEach((it,idx)=>{
+    if(it.eventIdx!==eventIdx)return;
+    const earlier=!bestTs||it.ts<bestTs||(it.ts===bestTs&&it.direction==="INBOUND");
+    if(earlier){bestTs=it.ts;best=idx}
+  });
+  selectedStreamIdx=best>=0?best:0;
+}
+
+document.getElementById("btnNext").addEventListener("click",()=>{
+  if(cur<0)cur=0;else if(cur<EVENTS.length-1)cur++;else return;
+  selectEarliestForEvent(cur);
+  render();
+});
+document.getElementById("btnApprove").addEventListener("click",()=>{
+  if(cur===4&&EVENTS[4].humanGate&&!draftApproved){draftApproved=true;selectEarliestForEvent(4);render()}
+});
+document.getElementById("btnEscalate").addEventListener("click",()=>{alert("Escalate to Voice — Case #4821\n\n(Demo only)")});
+
+function openLog(){document.getElementById("logDrawer").classList.add("open");document.getElementById("logOverlay").classList.add("open")}
+function closeLog(){document.getElementById("logDrawer").classList.remove("open");document.getElementById("logOverlay").classList.remove("open")}
+document.getElementById("logTab").addEventListener("click",openLog);
+document.getElementById("logClose").addEventListener("click",closeLog);
+document.getElementById("logOverlay").addEventListener("click",closeLog);
+
+render();
+</script>
+</body>
+</html>
