@@ -1,0 +1,18 @@
+ID: B5
+DIR: OUT
+CASE: caseB
+FROM: Priya N. · Dispute Specialist <priya.n@bank.com>
+TIME: Day 3 · 4:15 PM
+SUBJECT: Case #4821 — Specialist update
+
+Hi Emily,
+
+I'm Priya from the Dispute team. I've taken over Case #4821 after our Autopilot collected and validated your documentation.
+
+I have reviewed the $4,800 jewelry-store charge and the receipt you submitted. Your case remains under specialist investigation. A refund decision is not automatic and will be confirmed only after my review is complete.
+
+I will email you again when a decision is ready.
+
+Best regards,
+Priya N.
+Dispute Specialist · Meridian Trust

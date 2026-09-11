@@ -1,0 +1,10 @@
+ID: B3in
+DIR: IN
+CASE: caseB
+FROM: Emily <Emily.C@outlook.com>
+TIME: Day 2 · 4:40 PM
+SUBJECT: Re: Case #4821 — Please resubmit a clearer document
+
+Resubmitted a clearer photo of the receipt for Case #4821.
+
+— Emily

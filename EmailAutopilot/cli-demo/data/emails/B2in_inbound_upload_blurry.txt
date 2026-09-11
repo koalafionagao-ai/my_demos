@@ -1,0 +1,10 @@
+ID: B2in
+DIR: IN
+CASE: caseB
+FROM: Emily <Emily.C@outlook.com>
+TIME: Day 2 · 8:14 AM
+SUBJECT: Re: Reminder — Documents still needed for Case #4821
+
+Hi, I uploaded the receipt photo for the $4,800 charge. Please check Case #4821.
+
+— Emily

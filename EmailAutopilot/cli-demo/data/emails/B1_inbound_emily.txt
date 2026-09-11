@@ -1,0 +1,8 @@
+ID: B1
+DIR: IN
+CASE: caseB
+FROM: Emily <Emily.C@outlook.com>
+TIME: 2:17 AM
+SUBJECT: Strange Transaction
+
+I don't recognize this $4,800 transaction at a jewelry store. Could you refund?

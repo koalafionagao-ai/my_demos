@@ -1,0 +1,387 @@
+{
+  "id": "caseA",
+  "label": "Case A · Mike · Loan Status · #5108",
+  "inbound": "A1",
+  "ticket": {
+    "id": "#5108",
+    "title": "Mortgage application status",
+    "customer": "Mike J."
+  },
+  "tasks": [
+    {
+      "id": "T1",
+      "title": "Orchestrator · Lane gate",
+      "agent": "Orchestrator",
+      "ticket": "#5108",
+      "steps": [
+        {"id": "intake", "name": "Email Intake"},
+        {"id": "orch", "name": "Orchestrator"}
+      ],
+      "result": {
+        "autopilot_eligible": true,
+        "candidate_workflow": ["loan_status", "transaction_dispute"],
+        "guardrails": "read_only"
+      }
+    },
+    {
+      "id": "T2",
+      "title": "Routing · Understand & route",
+      "agent": "Routing Agent",
+      "ticket": "#5108",
+      "steps": [
+        {"id": "parse", "name": "Read & Extract"},
+        {"id": "understand", "name": "Understand"},
+        {"id": "validate", "name": "Validate"},
+        {"id": "route", "name": "Route"}
+      ],
+      "result": {
+        "route_to": "query_agent",
+        "execution_mode": "autopilot",
+        "human_approval_required": false
+      }
+    },
+    {
+      "id": "T3",
+      "title": "Query · Answer loan status",
+      "agent": "Query Agent",
+      "ticket": "#5108",
+      "steps": [
+        {"id": "retrieve", "name": "Retrieve"},
+        {"id": "grounding", "name": "Grounding"},
+        {"id": "generation", "name": "Generation"},
+        {"id": "verify", "name": "Verify"},
+        {"id": "output", "name": "Output"}
+      ],
+      "result": {
+        "email_sent": true,
+        "ticket_status": "Resolved",
+        "ask_answered": ["why_pending", "next_step"],
+        "task_list_updated": true
+      }
+    },
+    {
+      "id": "T4",
+      "title": "Close the loop",
+      "agent": "System",
+      "ticket": "#5108",
+      "steps": [
+        {"id": "close", "name": "Close Loop"}
+      ],
+      "result": {
+        "ticket_status": "Closed",
+        "audit_written": true,
+        "mode": "AUTO"
+      }
+    }
+  ],
+  "delta": [
+    {"m": "Queue / route", "before": "~2 hours", "after": "~1 minute"},
+    {"m": "Query → first reply", "before": "~50 minutes", "after": "~5 minutes"},
+    {"m": "Customer clock", "before": "same-day lag", "after": "09:05 → 09:10"}
+  ],
+  "result": "Result: Status ask answered · Ticket #5108 Resolved → Closed · Loan case still in progress (SoR)",
+  "run": [
+    {
+      "id": "inbound",
+      "nodeId": "inbound",
+      "k": "ok",
+      "agent": "Orchestrator",
+      "node": "Email Intake",
+      "title": "Email Intake",
+      "taskId": "T1",
+      "stepId": "intake",
+      "action": "Accept inbound mail into Autopilot",
+      "result": "ok",
+      "data": {
+        "input": {
+          "channel": "email",
+          "from": "Mike <Mike.J@google.com>",
+          "subject": "Mortgage Status"
+        },
+        "tools": {"mailbox_api": "ingest"},
+        "output": {"ticket_id": "#5108", "status": "accepted"}
+      },
+      "mails": ["A1"],
+      "pause": "send",
+      "ticket": {
+        "status": "Open",
+        "owner": "Autopilot",
+        "statusClass": "open",
+        "files": [],
+        "note": "Ticket created from inbound #1.",
+        "summary": "Ask: Why is my mortgage still pending? What can I do next?\nAutopilot: — (just opened)\nHuman: —\nWaiting: —\nTicket: Open · consultation not started\nLoan case (SoR): separate — not this ticket yet"
+      }
+    },
+    {
+      "id": "orch",
+      "nodeId": "orch",
+      "k": "ok",
+      "agent": "Orchestrator",
+      "node": "Orchestrator",
+      "title": "Orchestrator",
+      "taskId": "T1",
+      "stepId": "orch",
+      "doneTask": true,
+      "action": "Decide Autopilot eligibility · attach guardrails",
+      "result": "ok",
+      "data": {
+        "input": {"identity_verified": true, "ticket_id": "#5108"},
+        "tools": {"lane_gate": "evaluate"},
+        "output": {
+          "autopilot_eligible": true,
+          "candidate_workflow": ["loan_status", "transaction_dispute"],
+          "guardrails": "read_only"
+        }
+      },
+      "mails": [],
+      "ticket": {
+        "status": "In Progress",
+        "owner": "Autopilot",
+        "statusClass": "progress",
+        "note": "Autopilot eligible · routing started.",
+        "summary": "Ask: Why pending + what next?\nAutopilot: Eligible · guardrails read_only · routing to Query\nHuman: —\nWaiting: —\nTicket: In Progress\nLoan case (SoR): will be read for status facts only"
+      }
+    },
+    {
+      "id": "routing",
+      "nodeId": "routing-parse",
+      "k": "ok",
+      "agent": "Routing Agent",
+      "node": "Read & Extract",
+      "title": "Routing · Read & Extract",
+      "taskId": "T2",
+      "stepId": "parse",
+      "action": "Parse mail · extract topic / entities / language",
+      "result": "ok",
+      "data": {
+        "input": {
+          "subject": "Mortgage Status",
+          "body": "…still pending… what can I do next?"
+        },
+        "tools": {"parse_api": "mailbox.parse", "llm": "extract"},
+        "output": {
+          "topic": "loan_status",
+          "entities": ["mortgage_application"],
+          "sentiment": "neutral",
+          "language": "en"
+        }
+      },
+      "mails": []
+    },
+    {
+      "id": "routing",
+      "nodeId": "routing-understand",
+      "k": "ok",
+      "agent": "Routing Agent",
+      "node": "Understand",
+      "title": "Routing · Understand",
+      "taskId": "T2",
+      "stepId": "understand",
+      "action": "Map extract to candidate topic",
+      "result": "ok",
+      "data": {
+        "input": {"topic": "loan_status"},
+        "tools": {"llm": "intent_classify"},
+        "output": {"intent": "loan_status", "confidence": 0.9}
+      },
+      "mails": []
+    },
+    {
+      "id": "routing",
+      "nodeId": "routing-validate",
+      "k": "ok",
+      "agent": "Routing Agent",
+      "node": "Validate",
+      "title": "Routing · Validate",
+      "taskId": "T2",
+      "stepId": "validate",
+      "action": "Gate confidence · required slots · routing rule",
+      "result": "pass",
+      "data": {
+        "input": {"confidence": 0.9, "threshold": 0.85},
+        "tools": {"rule_api": "routing.validate"},
+        "output": {
+          "pass": true,
+          "reason": {
+            "confidence_ok": true,
+            "slots_ok": true,
+            "matched_rule": "loan_status → query_agent"
+          }
+        }
+      },
+      "mails": []
+    },
+    {
+      "id": "routing",
+      "nodeId": "routing-route",
+      "k": "ok",
+      "agent": "Routing Agent",
+      "node": "Route",
+      "title": "Routing · Route",
+      "taskId": "T2",
+      "stepId": "route",
+      "doneTask": true,
+      "action": "Open Query task · set execution mode",
+      "result": "ok",
+      "data": {
+        "input": {"intent": "loan_status", "risk": "low"},
+        "tools": {"router_api": "route"},
+        "output": {
+          "route_to": "query_agent",
+          "execution_mode": "autopilot",
+          "human_approval_required": false
+        }
+      },
+      "mails": [],
+      "ticket": {
+        "summary": "Ask: Why pending + what next?\nAutopilot: Routed to Query Agent (loan_status)\nHuman: —\nWaiting: —\nTicket: In Progress · answering the ask\nLoan case (SoR): read-only lookup"
+      }
+    },
+    {
+      "id": "query",
+      "nodeId": "query-retrieve",
+      "k": "ok",
+      "agent": "Query Agent",
+      "node": "Retrieve",
+      "title": "Query · Retrieve",
+      "taskId": "T3",
+      "stepId": "retrieve",
+      "action": "Pull loan status from SoR",
+      "result": "ok",
+      "data": {
+        "input": {"intent": "loan_status", "ticket_id": "#5108"},
+        "tools": {"sor_api": "los.mortgage.status"},
+        "output": {
+          "appraisal": "completed",
+          "income_verification": "pending",
+          "underwriting": "pending"
+        }
+      },
+      "mails": []
+    },
+    {
+      "id": "query",
+      "nodeId": "query-grounding",
+      "k": "ok",
+      "agent": "Query Agent",
+      "node": "Grounding",
+      "title": "Query · Grounding",
+      "taskId": "T3",
+      "stepId": "grounding",
+      "action": "Check reply facts against SoR",
+      "result": "pass",
+      "data": {
+        "input": {"facts_ref": "sor_status"},
+        "tools": {"grounding_api": "check"},
+        "output": {
+          "pass": true,
+          "reason": {"grounded": true, "relevant": true}
+        }
+      },
+      "mails": []
+    },
+    {
+      "id": "query",
+      "nodeId": "query-generation",
+      "k": "ok",
+      "agent": "Query Agent",
+      "node": "Generation",
+      "title": "Query · Generation",
+      "taskId": "T3",
+      "stepId": "generation",
+      "action": "Draft status-only reply under guardrails",
+      "result": "ok",
+      "data": {
+        "input": {
+          "facts": {
+            "appraisal": "completed",
+            "income_verification": "pending"
+          },
+          "guardrails": "read_only"
+        },
+        "tools": {"llm": "reply_draft"},
+        "output": {"draft": "status + next step", "policy": "status_only"}
+      },
+      "mails": []
+    },
+    {
+      "id": "query",
+      "nodeId": "query-verify",
+      "k": "ok",
+      "agent": "Query Agent",
+      "node": "Verify",
+      "title": "Query · Verify",
+      "taskId": "T3",
+      "stepId": "verify",
+      "action": "Align draft vs SoR before send",
+      "result": "pass",
+      "data": {
+        "input": {"draft_ref": "reply_v1"},
+        "tools": {"verify_api": "align_check"},
+        "output": {
+          "pass": true,
+          "reason": {"align_ok": true, "allow_send": true}
+        }
+      },
+      "mails": []
+    },
+    {
+      "id": "query",
+      "nodeId": "query-output",
+      "k": "ok",
+      "agent": "Query Agent",
+      "node": "Output",
+      "title": "Query · Output",
+      "taskId": "T3",
+      "stepId": "output",
+      "doneTask": true,
+      "action": "Send reply · update ticket · update tasks",
+      "result": "ok",
+      "data": {
+        "input": {"draft_verified": true},
+        "tools": {"email_api": "send", "ticket_api": "write"},
+        "output": {
+          "email_sent": true,
+          "ticket_status": "Resolved",
+          "ask_answered": ["why_pending", "next_step"],
+          "task_list_updated": true
+        }
+      },
+      "mails": ["A2"],
+      "pause": "mail",
+      "ticket": {
+        "status": "Resolved",
+        "owner": "Autopilot",
+        "statusClass": "resolved",
+        "note": "Ask answered in reply #2 (why + next step).",
+        "summary": "Ask: Why pending + what next?\nAutopilot: Answered why (income verification still pending) and next step. Reply #2 sent.\nHuman: —\nWaiting: —\nTicket: Resolved · consultation done\nLoan case (SoR): still in progress (income verification) — not this ticket"
+      }
+    },
+    {
+      "id": "output",
+      "nodeId": "output",
+      "k": "ok",
+      "agent": "System",
+      "node": "Close Loop",
+      "title": "Close the loop",
+      "taskId": "T4",
+      "stepId": "close",
+      "doneTask": true,
+      "action": "Update ticket status · write audit",
+      "result": "ok",
+      "data": {
+        "input": {"actor": "query_autopilot", "mode": "AUTO"},
+        "tools": {"ticket_api": "close", "audit_api": "write"},
+        "output": {"ticket_status": "Closed", "audit_written": true}
+      },
+      "mails": [],
+      "ticket": {
+        "status": "Closed",
+        "owner": "Autopilot",
+        "statusClass": "closed",
+        "note": "Ticket closed. Loan case continues in SoR.",
+        "summary": "Ask: Why pending + what next?\nAutopilot: Fully answered · ticket closed\nHuman: —\nWaiting: —\nTicket: Closed\nLoan case (SoR): still in progress (income verification) — outside this ticket"
+      }
+    }
+  ]
+}
