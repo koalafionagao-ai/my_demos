@@ -154,5 +154,5 @@ Case(SoR): Status of the business object (may differ)
 |---|---|
 | 中文 README | https://github.com/koalafionagao-ai/my_demos/blob/main/EmailAutopilot/README-zh.md |
 | English README | https://github.com/koalafionagao-ai/my_demos/blob/main/EmailAutopilot/README-en.md |
-| Admin Canvas | [`admin-canvas.html`](admin-canvas.html) |
-| CLI Demo | [`../cli-demo/`](../cli-demo/) |
+| Admin Canvas | https://koalafionagao-ai.github.io/my_demos/EmailAutopilot/ |
+| CLI Demo | https://github.com/koalafionagao-ai/my_demos/tree/main/EmailAutopilot/cli-demo |
