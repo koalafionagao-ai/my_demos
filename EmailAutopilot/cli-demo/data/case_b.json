@@ -18,8 +18,8 @@
         {"id": "orch", "name": "Orchestrator"}
       ],
       "result": {
+        "lane": "autopilot",
         "autopilot_eligible": true,
-        "candidate_workflow": ["loan_status", "transaction_dispute"],
         "guardrails": "read_only"
       }
     },
@@ -29,34 +29,39 @@
       "agent": "Routing Agent",
       "ticket": "#4821",
       "steps": [
-        {"id": "parse", "name": "Read & Extract"},
+        {"id": "read", "name": "Read"},
+        {"id": "extract", "name": "Extract"},
         {"id": "understand", "name": "Understand"},
         {"id": "validate", "name": "Validate"},
         {"id": "route", "name": "Route"}
       ],
       "result": {
-        "route_to": ["doc_agent", "exception_agent"],
-        "execution_mode": "autopilot",
-        "human_approval_required": true
+        "primary_intent": "Dispute with Missing Doc",
+        "additional_intent": "Refund Request",
+        "dependency_check": "Refund requires validated evidence",
+        "confidence": 0.85,
+        "primary_agent": "Doc Agent",
+        "workflow": "Dispute Transaction Doc Collection"
       }
     },
     {
       "id": "T3",
-      "title": "Doc · Collect & validate",
+      "title": "Doc Agent · Dispute Transaction Doc Collection",
       "agent": "Doc Agent",
       "ticket": "#4821",
       "steps": [
         {"id": "check", "name": "Check"},
         {"id": "collect", "name": "Secure Collection"},
-        {"id": "detect", "name": "Detection"},
-        {"id": "ocr", "name": "OCR & Extract"},
+        {"id": "detect", "name": "Detection & Validation"},
+        {"id": "ocr", "name": "OCR & Extraction"},
         {"id": "crosscheck", "name": "Cross-check"},
         {"id": "output", "name": "Output"}
       ],
       "result": {
         "docs_validated": true,
-        "ticket_status": "Waiting",
-        "email_sent": true
+        "email_written_and_sent": true,
+        "ticket_status_update": "Waiting",
+        "task_list_update": true
       }
     },
     {
@@ -73,7 +78,7 @@
         "auto_refund": false,
         "handover": "Priya N.",
         "specialist_email_sent": true,
-        "ticket_status": "Resolved"
+        "ticket_status_update": "Resolved"
       }
     },
     {
@@ -86,496 +91,203 @@
       ],
       "result": {
         "ticket_status": "Closed",
-        "audit_written": true,
-        "mode": "DOC_AUTO + HUMAN"
+        "audit_written": true
       }
     }
   ],
-  "delta": [
-    {"m": "Queue / route (night)", "before": "~9 hours", "after": "~1 minute"},
-    {"m": "Doc collection", "before": "~8 days", "after": "~3 days"},
-    {"m": "Refund", "before": "agent-owned", "after": "BLOCK · Human (no auto)"}
-  ],
-  "result": "Result: Docs validated · Human replied · Ticket #4821 Closed · Dispute case still under investigation",
-  "run": [
+  "result": "Workflow: Dispute Transaction Doc Collection\n         via Doc Agent + Exception (Human)\nResult: Docs validated · Human replied\n        Ticket #4821 Closed\n        Dispute case still under investigation",
+  "stages": [
     {
-      "id": "inbound",
-      "nodeId": "inbound",
-      "k": "ok",
-      "agent": "Orchestrator",
-      "node": "Email Intake",
-      "title": "Email Intake",
       "taskId": "T1",
-      "stepId": "intake",
-      "action": "Accept inbound mail into Autopilot",
-      "result": "ok",
+      "title": "T1 · Orchestrator · Lane gate",
       "data": {
         "input": {
-          "channel": "email",
-          "non_working_hours": true,
-          "from": "Emily <Emily.C@outlook.com>",
-          "subject": "Strange Transaction"
+          "email_from": "Emily",
+          "ticket_id": "#4821",
+          "non_working_hours": true
         },
-        "tools": {"mailbox_api": "ingest"},
-        "output": {"ticket_id": "#4821", "status": "accepted"}
-      },
-      "mails": ["B1"],
-      "pause": "send",
-      "ticket": {
-        "status": "Open",
-        "owner": "Autopilot",
-        "statusClass": "open",
-        "files": [],
-        "note": "Ticket created from inbound #1.",
-        "summary": "Ask: Unrecognized $4,800 jewelry charge — please refund?\nAutopilot: — (just opened)\nHuman: —\nWaiting: —\nTicket: Open\nDispute case (SoR): not started"
-      }
-    },
-    {
-      "id": "orch",
-      "nodeId": "orch",
-      "k": "ok",
-      "agent": "Orchestrator",
-      "node": "Orchestrator",
-      "title": "Orchestrator",
-      "taskId": "T1",
-      "stepId": "orch",
-      "doneTask": true,
-      "action": "Decide Autopilot eligibility · attach guardrails",
-      "result": "ok",
-      "data": {
-        "input": {"identity_verified": true, "ticket_id": "#4821"},
-        "tools": {"lane_gate": "evaluate"},
-        "output": {
+        "decision": {
           "autopilot_eligible": true,
-          "candidate_workflow": ["loan_status", "transaction_dispute"],
           "guardrails": "read_only"
+        },
+        "output": {
+          "lane": "autopilot",
+          "ticket_status": "Open → In Progress"
         }
       },
-      "mails": [],
-      "ticket": {
-        "status": "In Progress",
-        "owner": "Autopilot",
-        "statusClass": "progress",
-        "note": "Autopilot eligible · money blocked · routing.",
-        "summary": "Ask: Unrecognized $4,800 — refund?\nAutopilot: Eligible · money movement blocked · split Doc + Exception\nHuman: —\nWaiting: —\nTicket: In Progress\nDispute case (SoR): will open with collect"
-      }
+      "pause_after": true
     },
     {
-      "id": "routing",
-      "nodeId": "routing-parse",
-      "k": "ok",
-      "agent": "Routing Agent",
-      "node": "Read & Extract",
-      "title": "Routing · Read & Extract",
       "taskId": "T2",
-      "stepId": "parse",
-      "action": "Parse mail · extract topic / entities / language",
-      "result": "ok",
+      "title": "T2 · Routing · Multi-intent split",
       "data": {
         "input": {
-          "subject": "Strange Transaction",
-          "body": "$4,800 jewelry · ask refund"
-        },
-        "tools": {"parse_api": "mailbox.parse", "llm": "extract"},
-        "output": {
           "topic": "transaction_dispute",
           "entities": ["$4800", "jewelry_store"],
-          "sentiment": "concerned",
-          "language": "en"
+          "sentiment": "concerned"
+        },
+        "decision": {
+          "primary_intent": "Dispute with Missing Doc",
+          "additional_intent": "Refund Request",
+          "confidence": 0.85,
+          "dependency_check": "Refund requires validated evidence",
+          "matched_rules": [
+            "Dispute with Missing Doc → Doc Agent",
+            "Refund requires validated evidence"
+          ]
+        },
+        "output": {
+          "primary_agent": "Doc Agent",
+          "workflow": "Dispute Transaction Doc Collection",
+          "refund": "deferred → Exception Agent"
         }
       },
-      "mails": []
+      "pause_after": true
     },
     {
-      "id": "routing",
-      "nodeId": "routing-understand",
-      "k": "ok",
-      "agent": "Routing Agent",
-      "node": "Understand",
-      "title": "Routing · Understand",
-      "taskId": "T2",
-      "stepId": "understand",
-      "action": "Split multi-intent topics",
-      "result": "ok",
-      "data": {
-        "input": {"topic": "transaction_dispute"},
-        "tools": {"llm": "intent_classify"},
-        "output": {
-          "intents": ["missing_doc", "refund"],
-          "confidence": 0.85
-        }
-      },
-      "mails": []
-    },
-    {
-      "id": "routing",
-      "nodeId": "routing-validate",
-      "k": "ok",
-      "agent": "Routing Agent",
-      "node": "Validate",
-      "title": "Routing · Validate",
-      "taskId": "T2",
-      "stepId": "validate",
-      "action": "Gate confidence · slots · routing rules",
-      "result": "pass",
-      "data": {
-        "input": {"confidence": 0.85, "threshold": 0.85},
-        "tools": {"rule_api": "routing.validate"},
-        "output": {
-          "pass": true,
-          "reason": {
-            "confidence_ok": true,
-            "slots": {"receipt": "missing"},
-            "matched_rules": [
-              "dispute+missing_doc → doc",
-              "refund → exception"
-            ]
+      "taskId": "T3",
+      "title": "T3 · Doc Agent · Dispute Transaction Doc Collection",
+      "mode": "substeps",
+      "substeps": [
+        {
+          "name": "Step 1 · Check",
+          "data": {
+            "input": {"intent": "Dispute with Missing Doc"},
+            "output": {
+              "required_docs": ["receipt"],
+              "money_block": true
+            }
           }
-        }
-      },
-      "mails": []
-    },
-    {
-      "id": "routing",
-      "nodeId": "routing-route",
-      "k": "ok",
-      "agent": "Routing Agent",
-      "node": "Route",
-      "title": "Routing · Route",
-      "taskId": "T2",
-      "stepId": "route",
-      "doneTask": true,
-      "action": "Open Doc + Exception tasks",
-      "result": "ok",
-      "data": {
-        "input": {
-          "intents": ["missing_doc", "refund"],
-          "risk": {"doc": "low", "refund": "high"}
         },
-        "tools": {"router_api": "route"},
-        "output": {
-          "route_to": ["doc_agent", "exception_agent"],
-          "execution_mode": "autopilot",
-          "human_approval_required": true
-        }
-      },
-      "mails": [],
-      "ticket": {
-        "summary": "Ask: Unrecognized $4,800 — refund?\nAutopilot: Doc collect + Exception (refund blocked)\nHuman: will be required for refund decision\nWaiting: —\nTicket: In Progress\nDispute case (SoR): pending docs"
-      }
-    },
-    {
-      "id": "doc",
-      "nodeId": "doc-check",
-      "k": "ok",
-      "agent": "Doc Agent",
-      "node": "Check",
-      "title": "Doc · Check",
-      "taskId": "T3",
-      "stepId": "check",
-      "action": "Load doc policies · money block",
-      "result": "ok",
-      "data": {
-        "input": {"intent": "missing_doc"},
-        "tools": {"policy_api": "load"},
-        "output": {"required_docs": ["receipt"], "money_block": true}
-      },
-      "mails": []
-    },
-    {
-      "id": "doc",
-      "nodeId": "doc-collect",
-      "k": "ok",
-      "agent": "Doc Agent",
-      "node": "Secure Collection",
-      "title": "Doc · Secure Collection",
-      "taskId": "T3",
-      "stepId": "collect",
-      "action": "Send secure collect request",
-      "result": "ok",
-      "data": {
-        "input": {"required_docs": ["receipt"], "deadline": "48h"},
-        "tools": {"collect_api": "create", "email_api": "send"},
-        "output": {"collect_url": "/secure/collect/4821", "mail": "#2"}
-      },
-      "mails": ["B2"],
-      "pause": "mail",
-      "ticket": {
-        "status": "Waiting",
-        "owner": "Autopilot · Doc",
-        "statusClass": "waiting",
-        "note": "Waiting on customer receipt upload (48h).",
-        "summary": "Ask: Unrecognized $4,800 — refund?\nAutopilot: Sent secure collect (#2). Auto-refund blocked.\nHuman: — (later for refund)\nWaiting: Customer receipt within 48h\nTicket: Waiting\nDispute case (SoR): open · pending docs"
-      }
-    },
-    {
-      "id": "doc",
-      "nodeId": "doc-collect",
-      "k": "ok",
-      "agent": "Doc Agent",
-      "node": "Secure Collection",
-      "title": "Doc · Reminder",
-      "taskId": "T3",
-      "stepId": "collect",
-      "action": "Send compliant reminder",
-      "result": "ok",
-      "data": {
-        "input": {"ticket_id": "#4821", "reminder": "T+1"},
-        "tools": {"email_api": "send"},
-        "output": {"mail": "#3"}
-      },
-      "mails": ["B2r"],
-      "pause": "mail",
-      "ticket": {
-        "summary": "Ask: Unrecognized $4,800 — refund?\nAutopilot: Reminder #3 sent. Still blocked on money.\nHuman: —\nWaiting: Customer receipt (deadline from collect)\nTicket: Waiting\nDispute case (SoR): pending docs"
-      }
-    },
-    {
-      "id": "doc",
-      "nodeId": "doc-detect",
-      "k": "ok",
-      "agent": "Doc Agent",
-      "node": "Detection",
-      "title": "Doc · Upload received",
-      "taskId": "T3",
-      "stepId": "detect",
-      "action": "Attach customer upload",
-      "result": "ok",
-      "data": {
-        "input": {"file_ref": "receipt_v1.jpg"},
-        "tools": {"ticket_api": "attach"},
-        "output": {"attached": true, "mail": "#4"}
-      },
-      "mails": ["B2in"],
-      "pause": "customer",
-      "ticket": {
-        "files": [{"name": "receipt_v1.jpg", "note": "customer upload"}],
-        "summary": "Ask: Unrecognized $4,800 — refund?\nAutopilot: Got upload #4 (receipt_v1.jpg) · quality check next\nHuman: —\nWaiting: Clearer doc if quality fails\nTicket: Waiting\nDispute case (SoR): docs in review"
-      }
-    },
-    {
-      "id": "doc",
-      "nodeId": "doc-detect",
-      "k": "ok",
-      "agent": "Doc Agent",
-      "node": "Detection",
-      "title": "Doc · Detection",
-      "taskId": "T3",
-      "stepId": "detect",
-      "action": "Fraud + quality check",
-      "result": "pass",
-      "data": {
-        "input": {"file_ref": "receipt_v1.jpg"},
-        "tools": {"fraud_api": "scan"},
-        "output": {
-          "pass": true,
-          "reason": {
-            "fraud_ok": true,
-            "quality": "blurry",
-            "action": "request_clearer"
+        {
+          "name": "Step 2 · Secure Collection",
+          "data": {
+            "template_id": "dispute_doc_request@v1",
+            "slots": {
+              "customer_name": "Emily",
+              "amount": 4800,
+              "merchant": "jewelry store",
+              "case_id": "#4821",
+              "secure_link": "bank.com/secure/collect/4821",
+              "deadline": "48h"
+            },
+            "output": {
+              "collect_url": "/secure/collect/4821",
+              "ticket_status": "In Progress → Waiting"
+            }
           },
-          "mail": "#5"
-        }
-      },
-      "mails": ["B3"],
-      "pause": "mail",
-      "ticket": {
-        "files": [{"name": "receipt_v1.jpg", "note": "blurry — rejected"}],
-        "summary": "Ask: Unrecognized $4,800 — refund?\nAutopilot: Rejected blurry upload · asked clearer copy (#5)\nHuman: —\nWaiting: Clearer receipt from customer\nTicket: Waiting\nDispute case (SoR): pending clearer doc"
-      }
-    },
-    {
-      "id": "doc",
-      "nodeId": "doc-ocr",
-      "k": "ok",
-      "agent": "Doc Agent",
-      "node": "OCR & Extract",
-      "title": "Doc · Resubmit received",
-      "taskId": "T3",
-      "stepId": "ocr",
-      "action": "OCR clearer receipt",
-      "result": "ok",
-      "data": {
-        "input": {"file_ref": "receipt_v2.jpg"},
-        "tools": {"ocr_api": "extract"},
-        "output": {
-          "merchant": "jewelry_store",
-          "amount": 4800,
-          "conf": 0.92,
-          "mail": "#6"
-        }
-      },
-      "mails": ["B3in"],
-      "pause": "customer",
-      "ticket": {
-        "status": "In Progress",
-        "owner": "Autopilot · Doc",
-        "statusClass": "progress",
-        "files": [
-          {"name": "receipt_v1.jpg", "note": "blurry — rejected"},
-          {"name": "receipt_v2.jpg", "note": "clearer · OCR ok"}
-        ],
-        "note": "Clearer doc received · validating.",
-        "summary": "Ask: Unrecognized $4,800 — refund?\nAutopilot: OCR ok on receipt_v2 (#6) · cross-check next\nHuman: —\nWaiting: —\nTicket: In Progress · validating docs\nDispute case (SoR): docs nearly ready"
-      }
-    },
-    {
-      "id": "doc",
-      "nodeId": "doc-output",
-      "k": "ok",
-      "agent": "Doc Agent",
-      "node": "Output",
-      "title": "Doc · Output",
-      "taskId": "T3",
-      "stepId": "output",
-      "doneTask": true,
-      "action": "Cross-check · send under-review · update ticket",
-      "result": "ok",
-      "data": {
-        "input": {
-          "ocr": {"amount": 4800},
-          "claim": {"amount": 4800}
+          "mails": ["B2"],
+          "pause": "mail"
         },
-        "tools": {
-          "llm": "cross_check",
-          "email_api": "send",
-          "ticket_api": "write"
+        {
+          "name": "Step 3 · Reminder",
+          "data": {
+            "template_id": "dispute_doc_reminder@v1",
+            "slots": {
+              "customer_name": "Emily",
+              "amount": 4800,
+              "case_id": "#4821",
+              "secure_link": "bank.com/secure/collect/4821"
+            }
+          },
+          "mails": ["B2r"],
+          "pause": "mail"
         },
-        "output": {
-          "docs_validated": true,
-          "ticket_status": "Waiting",
-          "email_sent": true,
-          "mail": "#7"
+        {
+          "name": null,
+          "customer_prompt": "Emily uploaded a blurry receipt. Press Enter to simulate",
+          "mails": ["B2in"],
+          "pause": "customer"
+        },
+        {
+          "name": "Step 4 · Detection & Validation",
+          "data": {
+            "input": {"file": "receipt_v1.jpg"},
+            "decision": {
+              "fraud_ok": true,
+              "quality": "blurry",
+              "action": "request_clearer"
+            },
+            "template_id": "dispute_doc_resubmit@v1",
+            "slots": {
+              "customer_name": "Emily",
+              "amount": 4800,
+              "rejection_reason": "image too blurry"
+            }
+          },
+          "mails": ["B3"],
+          "pause": "mail"
+        },
+        {
+          "name": null,
+          "customer_prompt": "Emily resubmitted a clearer photo. Press Enter to simulate",
+          "mails": ["B3in"],
+          "pause": "customer"
+        },
+        {
+          "name": "Step 5 · OCR & Extraction",
+          "data": {
+            "input": {"file": "receipt_v2.jpg"},
+            "output": {
+              "merchant": "jewelry_store",
+              "amount": 4800,
+              "conf": 0.92
+            }
+          }
+        },
+        {
+          "name": "Step 6 · Cross-check & Output",
+          "data": {
+            "cross_check": {
+              "claim_amount": 4800,
+              "ocr_amount": 4800,
+              "match": true
+            },
+            "template_id": "dispute_under_review@v1",
+            "slots": {
+              "customer_name": "Emily",
+              "amount": 4800,
+              "case_id": "#4821",
+              "status": "Under Investigation"
+            },
+            "output": {
+              "docs_validated": true,
+              "email_written_and_sent": true,
+              "ticket_status_update": "Waiting"
+            }
+          },
+          "mails": ["B4"],
+          "pause": "mail"
         }
-      },
-      "mails": ["B4"],
-      "pause": "mail",
-      "ticket": {
-        "status": "Waiting",
-        "owner": "Queue · Dispute",
-        "statusClass": "waiting",
-        "files": [{"name": "receipt_v2.jpg", "note": "validated"}],
-        "note": "Docs validated · waiting specialist takeover.",
-        "summary": "Ask: Unrecognized $4,800 — refund?\nAutopilot: Docs validated · under-review email (#7) · auto-refund blocked\nHuman: Needed for refund decision\nWaiting: Specialist takeover\nTicket: Waiting\nDispute case (SoR): under investigation (case continues)"
-      }
+      ],
+      "pause_after": true
     },
     {
-      "id": "exception",
-      "nodeId": "exception-classify",
-      "k": "ok",
-      "agent": "Exception Agent",
-      "node": "Classify",
-      "title": "Exception · Classify",
       "taskId": "T4",
-      "stepId": "classify",
-      "action": "Block auto refund · build handover packet",
-      "result": "ok",
+      "title": "T4 · Exception · Refund block + Human",
       "data": {
-        "input": {"intent": "refund"},
-        "tools": {"llm": "exception_route"},
-        "output": {
+        "decision": {
           "auto_refund": false,
-          "path": "human",
-          "reason": "NO_MONEY"
+          "reason": "NO_MONEY",
+          "path": "human"
+        },
+        "output": {
+          "handover": "Priya N.",
+          "queue": "dispute"
         }
       },
-      "mails": [],
-      "ticket": {
-        "summary": "Ask: Unrecognized $4,800 — refund?\nAutopilot: Classified NO_MONEY → Human path\nHuman: Required\nWaiting: Specialist assignment\nTicket: Waiting\nDispute case (SoR): under investigation"
-      }
-    },
-    {
-      "id": "human",
-      "nodeId": "human",
-      "k": "ok",
-      "agent": "Exception Agent",
-      "node": "Human Handover",
-      "title": "Human Handover",
-      "taskId": "T4",
-      "stepId": "human",
-      "action": "Assign specialist with full context",
-      "result": "ok",
-      "human": true,
       "waitHuman": true,
-      "data": {
-        "input": {"packet_ref": "#4821"},
-        "tools": {"workforce_api": "assign"},
-        "output": {
-          "assignee": "Priya N.",
-          "queue": "dispute",
-          "awaiting_human": true
-        }
-      },
-      "mails": [],
-      "ticket": {
-        "owner": "Priya N. · Dispute",
-        "note": "Assigned · Autopilot paused for takeover.",
-        "summary": "Ask: Unrecognized $4,800 — refund?\nAutopilot: Docs + packet ready · paused\nHuman: Priya N. assigned — click Take over to continue\nWaiting: Human takeover\nTicket: Waiting\nDispute case (SoR): under investigation"
-      }
+      "mails_after_takeover": ["B5"],
+      "pause_after": true
     },
     {
-      "id": "human",
-      "nodeId": "human",
-      "k": "ok",
-      "agent": "Exception Agent",
-      "node": "Specialist reply",
-      "title": "Human specialist reply",
-      "taskId": "T4",
-      "stepId": "hreply",
-      "doneTask": true,
-      "action": "Send specialist update email",
-      "result": "ok",
-      "human": true,
-      "data": {
-        "input": {
-          "actor": "human",
-          "from": "Priya N.",
-          "intervention": true
-        },
-        "tools": {"email_api": "send"},
-        "output": {
-          "specialist_email_sent": true,
-          "mail": "#8",
-          "human_intervention": true
-        }
-      },
-      "mails": ["B5"],
-      "pause": "mail",
-      "ticket": {
-        "status": "Resolved",
-        "owner": "Priya N. · Dispute",
-        "statusClass": "resolved",
-        "note": "Specialist update #8 sent · refund still case-owned.",
-        "summary": "Ask: Unrecognized $4,800 — refund?\nAutopilot: Collected & validated docs · blocked auto-refund\nHuman: Priya sent update (#8) — refund not auto; investigation continues\nWaiting: — (for this ticket)\nTicket: Resolved · customer informed; refund decision is case-level\nDispute case (SoR): still under investigation"
-      }
-    },
-    {
-      "id": "output",
-      "nodeId": "output",
-      "k": "ok",
-      "agent": "System",
-      "node": "Close Loop",
-      "title": "Close the loop",
       "taskId": "T5",
-      "stepId": "close",
-      "doneTask": true,
-      "action": "Update ticket status · write audit",
-      "result": "ok",
+      "title": "T5 · Close the loop",
       "data": {
-        "input": {
-          "actor": "doc_autopilot+human",
-          "mode": "DOC_AUTO + HUMAN"
-        },
-        "tools": {"ticket_api": "close", "audit_api": "write"},
-        "output": {"ticket_status": "Closed", "audit_written": true}
-      },
-      "mails": [],
-      "ticket": {
-        "status": "Closed",
-        "owner": "Priya N. · Dispute",
-        "statusClass": "closed",
-        "note": "Ticket closed. Dispute case continues in SoR.",
-        "summary": "Ask: Unrecognized $4,800 — refund?\nAutopilot: Docs done · money blocked\nHuman: Specialist owning refund decision\nWaiting: —\nTicket: Closed\nDispute case (SoR): still under investigation — outside this ticket"
+        "output": {
+          "ticket_status": "Closed",
+          "audit_written": true
+        }
       }
     }
   ]

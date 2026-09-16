@@ -5,7 +5,7 @@ import json
 import shutil
 import sys
 import time
-from typing import Any, Dict, Iterable, List, Optional, Sequence
+from typing import Any, Dict, List, Optional, Sequence
 
 
 USE_COLOR = sys.stdout.isatty() and "--no-color" not in sys.argv
@@ -88,23 +88,48 @@ def _wrap(text: str, width: int) -> List[str]:
     return out or [""]
 
 
-def _fmt_val(v: Any) -> str:
-    if isinstance(v, (dict, list)):
-        return json.dumps(v, ensure_ascii=False, separators=(",", ": "))
-    if isinstance(v, bool):
-        return "true" if v else "false"
-    return str(v)
+def print_json(data: Any) -> None:
+    """Pretty-print a JSON object indented like HTML task results."""
+    text = json.dumps(data, ensure_ascii=False, indent=2)
+    for line in text.split("\n"):
+        print(f"  {line}")
+    print()
 
 
-def print_email(mail: dict, index: Optional[int] = None) -> None:
+def print_stage(title: str, data: Optional[dict] = None) -> None:
+    print()
+    print(color(f"  ─── {title} ───", "bold"))
+    print()
+    if data is not None:
+        print_json(data)
+
+
+def print_substep(name: str, data: Optional[dict] = None) -> None:
+    print()
+    print(color(f"  ── {name} ──", "cyan"))
+    print()
+    if data is not None:
+        print_json(data)
+
+
+def print_email(mail: dict, index: Optional[int] = None, specialist: bool = False) -> None:
     direction = mail.get("dir", "IN")
-    tag = "INBOUND" if direction == "IN" else "OUTBOUND"
-    tag_col = "cyan" if direction == "IN" else "green"
+    if direction == "IN":
+        tag = "INBOUND"
+        arrow = "<<<"
+        tag_col = "cyan"
+    else:
+        tag = "OUTBOUND"
+        arrow = ">>>"
+        tag_col = "green"
     title = f"{tag} EMAIL"
     if index is not None:
         title = f"{tag} EMAIL #{index}"
+    if specialist or (direction == "OUT" and "specialist" in (mail.get("from") or "").lower()):
+        title += "  [SPECIALIST]"
+        tag_col = "magenta"
     print()
-    print(color(f"  >>> {title}", tag_col))
+    print(color(f"  {arrow} {title}", tag_col))
     lines = [
         f"FROM: {mail.get('from', '—')}",
         f"TIME: {mail.get('time', '—')}",
@@ -118,154 +143,17 @@ def print_email(mail: dict, index: Optional[int] = None) -> None:
         lines.append("-- AI Disclosure --")
         lines.extend(_wrap(mail["disclosure"], min(68, term_width() - 8)))
     print_box(lines)
-    if mail.get("file"):
-        print(color(f"  file: data/{mail['file']}", "gray"))
     print()
 
 
-def print_data(data: dict) -> None:
-    """Render structured {input, tools, output} I/O for a beat."""
-    if not data:
-        return
-    for section in ("input", "tools", "output"):
-        block = data.get(section)
-        if not block:
-            continue
-        label = section.capitalize()
-        print(color(f"  | {label}", "dim"))
-        if isinstance(block, dict):
-            max_k = max((len(str(k)) for k in block.keys()), default=8)
-            for k, v in block.items():
-                print(f"  |   {str(k):<{max_k}}  {_fmt_val(v)}")
-        else:
-            print(f"  |   {_fmt_val(block)}")
-
-
-def print_human_badge() -> str:
-    return color("[HUMAN]", "magenta")
-
-
-def print_beat(beat: dict, duration: str) -> None:
-    status = beat.get("k", "ok")
-    if status == "risk":
-        mark = color("FAILED", "red")
-    else:
-        mark = color("OK", "green")
-
-    agent = beat.get("agent") or ""
-    node = beat.get("node") or beat.get("title") or beat.get("s") or beat.get("id")
-    if agent and node and not str(node).startswith(agent):
-        title = f"{agent} · {node}"
-    else:
-        title = beat.get("title") or node or beat.get("id")
-
-    human_tag = f"  {print_human_badge()}" if beat.get("human") else ""
-    print()
-    print(
-        color(f"  -- {title} ", "blue")
-        + color(f"· {duration}s ", "gray")
-        + f"-- {mark}{human_tag}"
-    )
-
-    action = beat.get("action")
-    if isinstance(action, str) and action:
-        print(color(f"  | Action  {action}", "dim"))
-
-    data = beat.get("data")
-    if data:
-        print_data(data)
-    else:
-        # Backward-compatible fallback
-        think = beat.get("think") or []
-        actions = beat.get("action") or []
-        if think:
-            print(color("  | Think", "dim"))
-            max_k = max((len(str(r.get("k", ""))) for r in think), default=8)
-            for row in think:
-                k = str(row.get("k", ""))
-                v = str(row.get("v", ""))
-                print(f"  |   {k:<{max_k}}  {v}")
-        if isinstance(actions, list) and actions:
-            print(color("  | Action", "dim"))
-            for a in actions:
-                print(f"  |   {a}")
-    print()
-
-
-def print_ticket(
-    ticket: dict,
-    ticket_id: str,
-    prev_status: Optional[str] = None,
-) -> None:
-    """Render ticket state box with optional status transition."""
-    status = ticket.get("status")
-    owner = ticket.get("owner")
-    note = ticket.get("note")
-    files = ticket.get("files") or []
-
-    lines: List[str] = []
-    if status:
-        if prev_status and prev_status != status:
-            lines.append(f"Status: {prev_status} → {status}")
-        elif status:
-            lines.append(f"Status: → {status}" if not prev_status else f"Status: {status}")
-    if owner:
-        lines.append(f"Owner:  {owner}")
-    if note:
-        lines.append(f"Note:   {note}")
-    for f in files:
-        name = f.get("name", "?") if isinstance(f, dict) else str(f)
-        fnote = f.get("note", "") if isinstance(f, dict) else ""
-        lines.append(f"File:   {name}" + (f" ({fnote})" if fnote else ""))
-
-    if not lines:
-        return
-
-    title = f"TICKET {ticket_id}"
-    print()
-    print_box(lines, title=title)
-
-
-def print_summary(summary_text: str) -> None:
-    """Render bot summary block (Ask / Autopilot / Human / Waiting / Ticket / Case)."""
-    if not summary_text:
-        return
-    print()
-    print(color("  > Summary", "yellow"))
-    for line in summary_text.strip().split("\n"):
-        print(color(f"  > {line}", "yellow"))
-    print()
-
-
-def print_human_gate(beat: dict) -> None:
-    """Print Autopilot pause banner before waiting for human takeover."""
-    data = beat.get("data") or {}
-    out = data.get("output") or {}
-    assignee = out.get("assignee") or "Specialist"
-    queue = out.get("queue") or "dispute"
-
+def print_human_pause(assignee: str = "Priya N.", queue: str = "dispute") -> None:
     print()
     bar = "=" * 48
     print(color(f"  {bar}", "yellow"))
     print(color("  ⏸  AUTOPILOT PAUSED — Waiting for human takeover", "yellow"))
     print(color(f"     Specialist: {assignee} · {queue} queue", "yellow"))
-    print(color("     Packet: Case memory + docs + context", "yellow"))
     print(color(f"  {bar}", "yellow"))
     print()
-
-
-def print_table(headers: Sequence[str], rows: Sequence[Sequence[str]]) -> None:
-    cols = list(zip(*([headers] + [list(r) for r in rows]))) if rows else [headers]
-    widths = [max(len(str(c)) for c in col) for col in cols]
-
-    def fmt(row: Sequence[str]) -> str:
-        return " │ ".join(str(cell).ljust(widths[i]) for i, cell in enumerate(row))
-
-    sep = "-+-".join("-" * w for w in widths)
-    print(f"  {fmt(headers)}")
-    print(f"  {sep}")
-    for row in rows:
-        print(f"  {fmt(row)}")
 
 
 def print_welcome() -> None:
@@ -296,7 +184,7 @@ def wait_enter(message: str = "Press Enter to continue", auto_delay: float = 0.3
         print()
 
 
-def spinner(text: str, seconds: float = 0.55) -> None:
+def spinner(text: str, seconds: float = 0.35) -> None:
     if "--auto" in sys.argv:
         seconds = max(0.05, seconds / 3.0)
     frames = "|/-\\"
@@ -312,121 +200,17 @@ def spinner(text: str, seconds: float = 0.55) -> None:
     sys.stdout.flush()
 
 
-def print_result(
-    fixture: dict,
-    ok_count: int,
-    total: int,
-    task_ids: Iterable[str],
-    final_ticket: Optional[dict] = None,
-    final_summary: Optional[str] = None,
-) -> None:
+def print_result(fixture: dict) -> None:
     print_header("RUN COMPLETE")
     print(f"  {fixture.get('label', 'Case')}")
-    print(color(f"  {fixture.get('result', '')}", "green"))
     print()
-
-    if final_ticket and final_ticket.get("status"):
-        tid = (fixture.get("ticket") or {}).get("id", "")
-        owner = final_ticket.get("owner", "—")
-        print(f"  Ticket {tid}: {final_ticket.get('status')} · Owner: {owner}")
-        print()
-
-    if final_summary:
-        print_summary(final_summary)
-
-    delta = fixture.get("delta") or []
-    if delta:
-        print_table(
-            ["Metric", "Before", "After"],
-            [[d["m"], d["before"], d["after"]] for d in delta],
-        )
-        print()
-    tasks = " · ".join(f"{tid} {color('OK', 'green')}" for tid in task_ids)
-    print(f"  Steps: {total} total · {ok_count} {color('OK', 'green')} · {total - ok_count} failed")
-    print(f"  Tasks: {tasks}")
+    result = fixture.get("result") or ""
+    for line in result.strip().split("\n"):
+        print(color(f"  {line}", "green"))
     print()
 
 
-def print_memory_dump(memory: Dict[str, Any], fixture: dict) -> None:
-    """Print full memory & context dump after run complete."""
-    ticket = fixture.get("ticket") or {}
-    ticket_id = ticket.get("id", "")
-
-    print()
-    print(color("  ╔══════════════════════════════════════════════╗", "cyan"))
-    print(color("  ║  MEMORY & CONTEXT DUMP                       ║", "cyan"))
-    print(color("  ╠══════════════════════════════════════════════╣", "cyan"))
-    print()
-
-    # 5.1 Working Context
-    beats = memory.get("beats") or []
-    print(color(f"  ── Working Context ({len(beats)} beats) ──", "bold"))
-    print()
-    for i, entry in enumerate(beats, 1):
-        title = entry.get("title") or entry.get("node") or f"beat-{i}"
-        print(f"  [{i}] {title}")
-        data = entry.get("data") or {}
-        for section in ("input", "tools", "output"):
-            block = data.get(section)
-            if block is None:
-                continue
-            print(f"       {section}:  {_fmt_val(block)}")
-        print()
-
-    # 5.2 Ticket Timeline
-    ticket_log = memory.get("ticket_log") or []
-    print(color(f"  ── Ticket {ticket_id} Timeline ──", "bold"))
-    print()
-    if ticket_log:
-        for entry in ticket_log:
-            idx = entry.get("beat_index", "?")
-            status = entry.get("status") or "—"
-            owner = entry.get("owner") or "—"
-            note = entry.get("note") or ""
-            print(f"  [{idx}]  {status:<14}  {owner:<22}  {note}")
-    else:
-        print("  (no ticket status changes)")
-    print()
-
-    # 5.3 Task Results
-    task_results = memory.get("task_results") or {}
-    task_defs = {t["id"]: t for t in (fixture.get("tasks") or [])}
-    print(color("  ── Task Results ──", "bold"))
-    print()
-    for tid, result in task_results.items():
-        tdef = task_defs.get(tid) or {}
-        title = tdef.get("title", tid)
-        print(f"  {tid}  {title}")
-        print(f"       {_fmt_val(result)}")
-        print()
-    if not task_results:
-        # Fall back to fixture task.result
-        for tdef in fixture.get("tasks") or []:
-            print(f"  {tdef['id']}  {tdef.get('title', '')}")
-            print(f"       {_fmt_val(tdef.get('result') or {})}")
-            print()
-
-    # 5.4 Final Bot Summary
-    summary = memory.get("final_summary") or ""
-    print(color("  ── Bot Summary ──", "bold"))
-    print()
-    if summary:
-        for line in summary.strip().split("\n"):
-            print(f"  {line}")
-    else:
-        print("  (none)")
-    print()
-
-    # 5.5 Mail Stream
-    mail_log = memory.get("mail_log") or []
-    print(color(f"  ── Mail Stream ({len(mail_log)} emails) ──", "bold"))
-    print()
-    for entry in mail_log:
-        idx = entry.get("index", "?")
-        direction = entry.get("dir", "?")
-        t = entry.get("time", "—")
-        subj = entry.get("subject", "—")
-        print(f"  #{idx}  {direction:<3}  {t:<18}  {subj}")
-    if not mail_log:
-        print("  (none)")
-    print()
+def preview_mail(mail: dict) -> None:
+    print_header(mail.get("label") or mail.get("id") or "EMAIL TEMPLATE")
+    print_email(mail)
+    wait_enter("Press Enter to go back")
