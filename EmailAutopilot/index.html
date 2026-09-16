@@ -56,8 +56,14 @@ body{font-family:Inter,-apple-system,sans-serif;background:var(--bg);color:var(-
 .wf-stage{position:relative;width:1180px;height:920px}
 .wf-edge{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
 .lane-label{position:absolute;font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--faint);pointer-events:none}
-.lane-zone{position:absolute;border-radius:16px;border:1px dashed transparent;pointer-events:none;z-index:0}
+.lane-zone{position:absolute;border-radius:16px;border:1px dashed transparent;pointer-events:none;z-index:0;transition:opacity .25s,border-color .25s}
+.lane-zone.dim{opacity:.35}
+.lane-zone.active-wf{border-style:solid}
 .lane-zone .lz-title{position:absolute;left:10px;top:6px;font-size:11px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;opacity:1;padding:3px 8px;border-radius:6px;background:rgba(255,255,255,.92);box-shadow:0 1px 2px rgba(0,0,0,.06);line-height:1.2}
+.lane-zone .lz-workflows{position:absolute;left:10px;top:28px;font-size:9px;font-weight:500;letter-spacing:.01em;text-transform:none;padding:2px 8px;border-radius:6px;background:rgba(255,255,255,.85);line-height:1.35;max-width:calc(100% - 24px);opacity:.72}
+.lane-zone .lz-workflows .lz-wf{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lane-zone .lz-workflows .lz-wf.on{font-weight:800;opacity:1}
+.lane-zone.active-wf .lz-workflows{opacity:1}
 .wf-legend{position:absolute;left:10px;bottom:10px;z-index:3;display:flex;gap:12px;align-items:center;background:rgba(255,255,255,.92);border:1px solid var(--border);border-radius:999px;padding:5px 12px;font-size:10px;font-family:var(--mono);color:var(--muted);box-shadow:0 2px 8px rgba(0,0,0,.04)}
 .wf-legend i{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px;vertical-align:middle}
 .wf-legend .lg-api{background:#0284c7}
@@ -138,6 +144,7 @@ body{font-family:Inter,-apple-system,sans-serif;background:var(--bg);color:var(-
 
 .log-human{display:inline-block;font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:.04em;padding:2px 7px;border-radius:999px;background:#fef9c3;color:#a16207;margin-left:6px;vertical-align:middle}
 .log-meta .log-human{margin-left:0}
+.log-task{display:inline-block;font-family:var(--mono);font-size:9px;font-weight:600;color:var(--muted);background:#f0f1f3;padding:1px 6px;border-radius:999px;letter-spacing:.02em}
 
 .task-list{display:flex;flex-direction:column;gap:8px}
 .task-card{border:1px solid var(--border);border-radius:10px;background:#fff;padding:10px 12px}
@@ -159,7 +166,7 @@ body{font-family:Inter,-apple-system,sans-serif;background:var(--bg);color:var(-
 .task-card .tresult pre{margin:0;padding:8px 10px;background:#f6f7f9;border-radius:8px;font-family:var(--mono);font-size:10px;line-height:1.4;white-space:pre-wrap;word-break:break-word;color:var(--text);max-height:140px;overflow:auto}
 
 .log-head{font-size:11px;color:var(--muted);margin-bottom:10px;line-height:1.4}
-.pv-result-banner{margin:0 0 10px;padding:8px 10px;background:#f4f5f7;border-radius:10px;font-size:11px;font-weight:700;line-height:1.35}
+.pv-result-banner{margin:0 0 10px;padding:8px 10px;background:#f4f5f7;border-radius:10px;font-size:11px;font-weight:700;line-height:1.45;white-space:pre-wrap}
 .log-tl{position:relative;padding-left:18px}
 .log-tl::before{content:"";position:absolute;left:5px;top:4px;bottom:4px;width:2px;background:#e5e8ed}
 .log-row{position:relative;padding:0 0 14px 0}
@@ -310,23 +317,24 @@ const WF_NODES=[
   WFN({id:"orch",title:"Orchestrator",group:"orch",x:400,y:90,w:280,h:56,cls:"orch-bar",
     tool:"Autopilot lane · identity check",innerKey:"orch:Orchestrator"}),
 
-  WFN({id:"routing-parse",title:"Read & Extract",group:"routing",x:60,y:200,w:148,tool:"Parse API + LLM",innerKey:"routing:Read & Extract"}),
-  WFN({id:"routing-understand",title:"Understand",group:"routing",x:240,y:200,tool:"LLM",innerKey:"routing:Understand"}),
-  WFN({id:"routing-validate",title:"Validate",group:"routing",x:410,y:200,tool:"Rule API",innerKey:"routing:Validate"}),
-  WFN({id:"routing-route",title:"Route",group:"routing",x:580,y:200,tool:"Router API",innerKey:"routing:Route"}),
+  WFN({id:"routing-read",title:"Read",group:"routing",x:40,y:200,w:120,tool:"Mailbox Parse API",innerKey:"routing:Read"}),
+  WFN({id:"routing-extract",title:"Extract",group:"routing",x:180,y:200,w:120,tool:"LLM",innerKey:"routing:Extract"}),
+  WFN({id:"routing-understand",title:"Understand",group:"routing",x:320,y:200,tool:"LLM",innerKey:"routing:Understand"}),
+  WFN({id:"routing-validate",title:"Validate",group:"routing",x:480,y:200,tool:"Rule API",innerKey:"routing:Validate"}),
+  WFN({id:"routing-route",title:"Route",group:"routing",x:640,y:200,tool:"Router API",innerKey:"routing:Route"}),
 
-  WFN({id:"query-retrieve",title:"Retrieve",group:"query",x:40,y:360,tool:"SoR API",innerKey:"query:Retrieve"}),
-  WFN({id:"query-grounding",title:"Grounding",group:"query",x:190,y:360,tool:"LLM",innerKey:"query:Grounding"}),
-  WFN({id:"query-generation",title:"Generation",group:"query",x:340,y:360,tool:"LLM",innerKey:"query:Generation"}),
-  WFN({id:"query-verify",title:"Verify",group:"query",x:40,y:450,tool:"LLM",innerKey:"query:Verify"}),
-  WFN({id:"query-output",title:"Output",group:"query",x:190,y:450,tool:"Email + Ticket API",innerKey:"query:Output"}),
+  WFN({id:"query-retrieve",title:"Retrieve",group:"query",x:40,y:372,tool:"SoR API",innerKey:"query:Retrieve"}),
+  WFN({id:"query-grounding",title:"Grounding",group:"query",x:190,y:372,tool:"LLM",innerKey:"query:Grounding"}),
+  WFN({id:"query-generation",title:"Generation",group:"query",x:340,y:372,tool:"LLM",innerKey:"query:Generation"}),
+  WFN({id:"query-verify",title:"Verify",group:"query",x:40,y:462,tool:"LLM",innerKey:"query:Verify"}),
+  WFN({id:"query-output",title:"Output",group:"query",x:190,y:462,tool:"Email + Ticket API",innerKey:"query:Output"}),
 
-  WFN({id:"doc-check",title:"Check",group:"doc",x:560,y:360,tool:"Policy API",innerKey:"doc:Check"}),
-  WFN({id:"doc-collect",title:"Secure Collection",group:"doc",x:710,y:360,tool:"Collect API",innerKey:"doc:Secure Collection"}),
-  WFN({id:"doc-detect",title:"Detection",group:"doc",x:860,y:360,tool:"Fraud API",innerKey:"doc:Detection"}),
-  WFN({id:"doc-ocr",title:"OCR & Extract",group:"doc",x:560,y:450,tool:"OCR API",innerKey:"doc:OCR & Extract"}),
-  WFN({id:"doc-crosscheck",title:"Cross-check",group:"doc",x:710,y:450,tool:"LLM",innerKey:"doc:Cross-check"}),
-  WFN({id:"doc-output",title:"Output",group:"doc",x:860,y:450,tool:"Email + Ticket API",innerKey:"doc:Output"}),
+  WFN({id:"doc-check",title:"Check",group:"doc",x:520,y:372,tool:"Policy API",innerKey:"doc:Check"}),
+  WFN({id:"doc-collect",title:"Secure Collection",group:"doc",x:670,y:372,tool:"Collect API",innerKey:"doc:Secure Collection"}),
+  WFN({id:"doc-detect",title:"Detection & Validation",group:"doc",x:830,y:372,w:180,tool:"Fraud API",innerKey:"doc:Detection & Validation"}),
+  WFN({id:"doc-ocr",title:"OCR & Extraction",group:"doc",x:520,y:462,w:160,tool:"OCR API",innerKey:"doc:OCR & Extraction"}),
+  WFN({id:"doc-crosscheck",title:"Cross-check",group:"doc",x:700,y:462,tool:"LLM",innerKey:"doc:Cross-check"}),
+  WFN({id:"doc-output",title:"Output",group:"doc",x:860,y:462,tool:"Email + Ticket API",innerKey:"doc:Output"}),
 
   WFN({id:"exception-ingest",title:"Ingest",group:"exception",x:280,y:580,tool:"Case API",innerKey:"exception:Ingest"}),
   WFN({id:"exception-classify",title:"Classify",group:"exception",x:430,y:580,tool:"LLM",innerKey:"exception:Classify"}),
@@ -336,17 +344,18 @@ const WF_NODES=[
   WFN({id:"copilot",title:"Copilot Assist",group:"fallback",x:400,y:700,w:140,tool:"Draft only"}),
   WFN({id:"human",title:"Human Handover",group:"fallback",x:580,y:700,w:140,tool:"Specialist queue"}),
   WFN({id:"output",title:"Close Loop",group:"system",x:460,y:800,w:180,cls:"out-node",
-    tool:"Ticket + Task + Audit API",
+    tool:"Ticket + Task + Audit API",innerKey:"system:Close Loop",
     outputs:["Ticket status update","Task list update","Audit write"]})
 ];
 
 const WF_EDGES=[
   {a:"inbound",b:"orch"},
-  {a:"orch",b:"routing-parse"},
-  {a:"routing-parse",b:"routing-understand"},
+  {a:"orch",b:"routing-read"},
+  {a:"routing-read",b:"routing-extract"},
+  {a:"routing-extract",b:"routing-understand"},
   {a:"routing-understand",b:"routing-validate"},{a:"routing-validate",b:"routing-route"},
-  {a:"routing-route",b:"query-retrieve",dir:"fan",offset:-10},
-  {a:"routing-route",b:"doc-check",dir:"fan",offset:10},
+  {a:"routing-route",b:"query-retrieve",dir:"fan",offset:-10,workflowEdge:"Loan Status Query"},
+  {a:"routing-route",b:"doc-check",dir:"fan",offset:10,workflowEdge:"Dispute Transaction Doc Collection"},
   {a:"routing-route",b:"exception-ingest",dir:"fan",offset:0},
   {a:"query-retrieve",b:"query-grounding"},{a:"query-grounding",b:"query-generation"},
   {a:"query-generation",b:"query-verify",dir:"h"},{a:"query-verify",b:"query-output"},
@@ -364,10 +373,10 @@ const WF_EDGES=[
 ];
 
 const LANE_ZONES=[
-  {group:"routing",label:"Routing Agent",x:40,y:170,w:700,h:110,color:"rgba(59,108,255,.06)",border:"rgba(59,108,255,.35)",title:"#1d4ed8"},
-  {group:"query",label:"Query Agent",x:20,y:330,w:460,h:200,color:"rgba(5,150,105,.06)",border:"rgba(5,150,105,.35)",title:"#047857"},
-  {group:"doc",label:"Doc Agent",x:520,y:330,w:500,h:200,color:"rgba(220,38,38,.05)",border:"rgba(220,38,38,.32)",title:"#b91c1c"},
-  {group:"exception",label:"Exception Agent",x:250,y:550,w:560,h:120,color:"rgba(245,158,11,.08)",border:"rgba(180,83,9,.4)",title:"#b45309"}
+  {group:"routing",label:"Routing Agent",workflows:[],x:20,y:170,w:780,h:110,color:"rgba(59,108,255,.06)",border:"rgba(59,108,255,.35)",title:"#1d4ed8"},
+  {group:"query",label:"Query Agent",workflows:["Loan Status Query"],x:20,y:330,w:460,h:212,color:"rgba(5,150,105,.06)",border:"rgba(5,150,105,.35)",title:"#047857"},
+  {group:"doc",label:"Doc Agent",workflows:["Dispute Transaction Doc Collection"],x:500,y:330,w:530,h:212,color:"rgba(220,38,38,.05)",border:"rgba(220,38,38,.32)",title:"#b91c1c"},
+  {group:"exception",label:"Exception Agent",workflows:[],x:250,y:550,w:560,h:120,color:"rgba(245,158,11,.08)",border:"rgba(180,83,9,.4)",title:"#b45309"}
 ];
 
 function cfgMod(o){return Object.assign({
@@ -401,15 +410,16 @@ const SIMPLE_CFG={
   },
   routing:{
     title:"Routing Agent · Business rules",
-    role:"Understand intent and open the right downstream agent task.",
+    role:"Understand intent and route to the right agent + workflow.",
     zones:[
       {lab:"Business rules",fields:[
         {type:"toggle",label:"Multi-intent split (parallel)",on:true,maps:"→ Understand · Route"},
-        {type:"toggle",label:"Route refund / liability → Exception",on:true,maps:"→ Validate · Route"}
+        {type:"toggle",label:"Route refund / liability → Exception",on:true,maps:"→ Validate · Route"},
+        {type:"text",label:"Workflow routing table",value:"Loan Status Query → Query Agent · Loan Status Query\nDispute with Missing Doc → Doc Agent · Dispute Transaction Doc Collection"}
       ]},
       {lab:"Key parameters",fields:[
         {type:"text",label:"Confidence threshold (θ)",value:"0.85",maps:"→ Validate"},
-        {type:"text",label:"Candidate topics",value:"loan_status · transaction_dispute",maps:"→ Understand"}
+        {type:"text",label:"Candidate workflows",value:"Loan Status Query · Dispute Transaction Doc Collection",maps:"→ Understand · Route"}
       ]},
       {lab:"Safety / governance",fields:[
         {type:"text",label:"Fallback on fail",value:"→ Exception Agent"}
@@ -417,10 +427,11 @@ const SIMPLE_CFG={
     ]
   },
   query:{
-    title:"Query Agent · Business rules",
-    role:"Answer status questions from SoR under read-only guardrails.",
+    title:"Query Agent · Workflows & Business rules",
+    role:"Execute query workflows (e.g. Loan Status Query) — answer from SoR under read-only guardrails.",
     zones:[
       {lab:"Business rules",fields:[
+        {type:"text",label:"Registered workflows",value:"Loan Status Query"},
         {type:"checks",label:"Knowledge / data sources",items:[
           {t:"LOS / Mortgage status",on:true},
           {t:"Bank knowledge base",on:true},
@@ -430,7 +441,8 @@ const SIMPLE_CFG={
         {type:"toggle",label:"Require grounding + verify gates",on:true,maps:"→ Grounding · Verify"}
       ]},
       {lab:"Key parameters",fields:[
-        {type:"text",label:"Reply policy",value:"status_only · include next step"}
+        {type:"text",label:"Reply policy",value:"status_only · include next step"},
+        {type:"text",label:"Email Templates",value:"loan_status_reply@v2 · account_update_reply@v1",maps:"→ Generation"}
       ]},
       {lab:"Safety / governance",fields:[
         {type:"text",label:"Fallback on fail",value:"→ Exception Agent"}
@@ -438,10 +450,11 @@ const SIMPLE_CFG={
     ]
   },
   doc:{
-    title:"Doc Agent · Business rules",
-    role:"Collect and validate dispute documents. Money stays blocked.",
+    title:"Doc Agent · Workflows & Business rules",
+    role:"Execute doc workflows (e.g. Dispute Transaction Doc Collection) — collect & validate documents. Money stays blocked.",
     zones:[
       {lab:"Business rules",fields:[
+        {type:"text",label:"Registered workflows",value:"Dispute Transaction Doc Collection"},
         {type:"checks",label:"Required documents",items:[
           {t:"Receipt / statement photo",on:true},
           {t:"Bank statement PDF",on:false}
@@ -450,10 +463,11 @@ const SIMPLE_CFG={
         {type:"toggle",label:"Block auto refund",on:true,maps:"→ Check · Output"}
       ]},
       {lab:"Key parameters",fields:[
-        {type:"select",label:"Reminder cadence",value:"T+0 · T+1 · clear-doc",options:["T+0 only","T+0 · T+1","T+0 · T+1 · clear-doc"],maps:"→ Secure Collection"}
+        {type:"select",label:"Reminder cadence",value:"T+0 · T+1 · clear-doc",options:["T+0 only","T+0 · T+1","T+0 · T+1 · clear-doc"],maps:"→ Secure Collection"},
+        {type:"text",label:"Email Templates",value:"dispute_doc_request@v1 · dispute_doc_reminder@v1 · dispute_doc_resubmit@v1 · dispute_under_review@v1",maps:"→ Secure Collection · Output"}
       ]},
       {lab:"Safety / governance",fields:[
-        {type:"text",label:"OCR confidence gate",value:"≥ 0.80",maps:"→ OCR & Extract"},
+        {type:"text",label:"OCR confidence gate",value:"≥ 0.80",maps:"→ OCR & Extraction"},
         {type:"text",label:"Fallback on fail",value:"→ Exception Agent"}
       ]}
     ]
@@ -523,24 +537,34 @@ const MAIL={
   A1:{id:"A1",dir:"IN",from:"Mike <Mike.J@google.com>",time:"9:05 AM",subject:"Mortgage Status",
     body:"Is my mortgage application still pending now and why? What can I do next?"},
   A2:{id:"A2",dir:"OUT",from:"Finance CX AI Agent",time:"9:10 AM",subject:"Reply to Mortgage Status",
+    template:"loan_status_reply@v2",
+    slots:{customer_name:"Mike",appraisal_status:"completed",pending_reason:"income verification still being completed",next_step:"Once income verification is complete, the underwriter will review your application",case_ref:"#5108"},
     body:"Hello Mike,\n\nYour appraisal has been completed, but the underwriting review is still pending because your income verification is still being completed.\n\nNext step: Once income verification is complete, the underwriter will review your application and determine whether any additional information is needed.\n\nWe'll notify you when your application moves to the next stage.\n\nBest Regards,\nFinance CX AI Agent",
     disclosure:"This email was generated by an AI assistant based on your current mortgage application information. If further review is required, a loan specialist will follow up."},
   B1:{id:"B1",dir:"IN",from:"Emily <Emily.C@outlook.com>",time:"2:17 AM",subject:"Strange Transaction",
     body:"I don't recognize this $4,800 transaction at a jewelry store. Could you refund?"},
   B2:{id:"B2",dir:"OUT",from:"Finance CX AI Agent <ai-assistant@bank.com>",time:"2:20 AM",subject:"Re: Strange Transaction — Documents Needed",
+    template:"dispute_doc_request@v1",
+    slots:{customer_name:"Emily",amount:4800,merchant:"jewelry store",case_id:"#4821",secure_link:"bank.com/secure/collect/4821",deadline:"48h"},
     body:"Hi Emily,\n\nThank you for contacting us about the $4,800 jewelry-store transaction. We have opened Case #4821.\n\nTo continue the dispute review, please upload a clear photo or PDF of the receipt / statement for this charge using the secure link below within 48 hours:\nhttps://bank.com/secure/collect/4821\n\nWe cannot process a refund until documentation is received and a specialist completes the review.\n\nBest Regards,\nFinance CX AI Agent",
     disclosure:"This email was generated by an AI assistant based on your dispute case information. If further review is required, a dispute specialist will follow up."},
   B2r:{id:"B2r",dir:"OUT",from:"Finance CX AI Agent <ai-assistant@bank.com>",time:"Day 1 · 10:00 AM",subject:"Reminder — Documents still needed for Case #4821",
+    template:"dispute_doc_reminder@v1",
+    slots:{customer_name:"Emily",amount:4800,case_id:"#4821",secure_link:"bank.com/secure/collect/4821"},
     body:"Hi Emily,\n\nThis is a reminder that we still need supporting documentation for your $4,800 dispute (Case #4821).\n\nPlease upload via the secure link before the deadline so we can keep your case moving:\nhttps://bank.com/secure/collect/4821\n\nBest Regards,\nFinance CX AI Agent",
     disclosure:"This email was generated by an AI assistant based on your dispute case information. If further review is required, a dispute specialist will follow up."},
   B2in:{id:"B2in",dir:"IN",from:"Emily <Emily.C@outlook.com>",time:"Day 2 · 8:14 AM",subject:"Re: Reminder — Documents still needed for Case #4821",
     body:"Hi, I uploaded the receipt photo for the $4,800 charge. Please check Case #4821.\n\n— Emily"},
   B3:{id:"B3",dir:"OUT",from:"Finance CX AI Agent <ai-assistant@bank.com>",time:"Day 2 · 9:05 AM",subject:"Case #4821 — Please resubmit a clearer document",
+    template:"dispute_doc_resubmit@v1",
+    slots:{customer_name:"Emily",amount:4800,merchant:"jewelry store",case_id:"#4821",secure_link:"bank.com/secure/collect/4821",rejection_reason:"image too blurry to validate merchant, amount, and date"},
     body:"Hi Emily,\n\nWe received your upload for Case #4821 ($4,800 jewelry-store dispute), but the image is too blurry to validate merchant, amount, and date.\n\nPlease resubmit a clearer photo or PDF of the same receipt / statement using the secure link:\nhttps://bank.com/secure/collect/4821\n\nOnce a readable document is validated, your case will move to investigation. A refund is not automatic and still requires specialist review.\n\nBest Regards,\nFinance CX AI Agent",
     disclosure:"This email was generated by an AI assistant based on your dispute case information. If further review is required, a dispute specialist will follow up."},
   B3in:{id:"B3in",dir:"IN",from:"Emily <Emily.C@outlook.com>",time:"Day 2 · 4:40 PM",subject:"Re: Case #4821 — Please resubmit a clearer document",
     body:"Resubmitted a clearer photo of the receipt for Case #4821.\n\n— Emily"},
   B4:{id:"B4",dir:"OUT",from:"Finance CX AI Agent <ai-assistant@bank.com>",time:"Day 3",subject:"Your Transaction Dispute Is Under Review",
+    template:"dispute_under_review@v1",
+    slots:{customer_name:"Emily",amount:4800,case_id:"#4821",status:"Under Investigation"},
     body:"Hi Emily,\n\nYour requested documentation for the $4,800 dispute has been received and successfully validated. Your case is now under investigation.\nA dispute specialist will review it before a refund is processed.\n\nCase: #4821\nStatus: Under Investigation\n\nBest Regards,\nFinance CX AI Agent",
     disclosure:"This email was generated by an AI assistant based on your dispute case information. If further review is required, a dispute specialist will follow up."},
   B5:{id:"B5",dir:"OUT",from:"Priya N. · Dispute Specialist <priya.n@bank.com>",time:"Day 3 · 4:15 PM",subject:"Case #4821 — Specialist update",
@@ -556,18 +580,18 @@ const FIXTURES={
     tasks:[
       {id:"T1",title:"Orchestrator · Lane gate",agent:"Orchestrator",ticket:"#5108",steps:[
         {id:"intake",name:"Email Intake"},{id:"orch",name:"Orchestrator"}
-      ],result:{autopilot_eligible:true,candidate_workflow:["loan_status","transaction_dispute"],guardrails:"read_only"}},
+      ],result:{lane:"autopilot",autopilot_eligible:true,guardrails:"read_only"}},
       {id:"T2",title:"Routing · Understand & route",agent:"Routing Agent",ticket:"#5108",steps:[
-        {id:"parse",name:"Read & Extract"},{id:"understand",name:"Understand"},
+        {id:"read",name:"Read"},{id:"extract",name:"Extract"},{id:"understand",name:"Understand"},
         {id:"validate",name:"Validate"},{id:"route",name:"Route"}
-      ],result:{route_to:"query_agent",execution_mode:"autopilot",human_approval_required:false}},
-      {id:"T3",title:"Query · Answer loan status",agent:"Query Agent",ticket:"#5108",steps:[
+      ],result:{intent:"Loan Status Query",confidence:0.90,agent:"Query Agent",workflow:"Loan Status Query"}},
+      {id:"T3",title:"Query Agent · Loan Status Query",agent:"Query Agent",ticket:"#5108",steps:[
         {id:"retrieve",name:"Retrieve"},{id:"grounding",name:"Grounding"},{id:"generation",name:"Generation"},
         {id:"verify",name:"Verify"},{id:"output",name:"Output"}
-      ],result:{email_sent:true,ticket_status:"Resolved",ask_answered:["why_pending","next_step"],task_list_updated:true}},
+      ],result:{template_id:"loan_status_reply@v2",slots:{customer_name:"Mike",appraisal_status:"completed",pending_reason:"income verification still being completed",next_step:"Once income verification is complete, the underwriter will review your application",case_ref:"#5108"},email_written_and_sent:true,ticket_status_update:"Resolved",task_list_update:true,ask_answered:["why_pending","next_step"]}},
       {id:"T4",title:"Close the loop",agent:"System",ticket:"#5108",steps:[
         {id:"close",name:"Close Loop"}
-      ],result:{ticket_status:"Closed",audit_written:true,mode:"AUTO"}}
+      ],result:{ticket_status:"Closed",audit_written:true}}
     ],
     delta:[
       {m:"Queue / route",before:"~2 hours",after:"~1 minute"},
@@ -575,7 +599,7 @@ const FIXTURES={
       {m:"Customer clock",before:"same-day lag",after:"09:05 → 09:10"}
     ],
     skipGroups:["doc","exception","fallback"],
-    result:"Result: Status ask answered · Ticket #5108 Resolved → Closed · Loan case still in progress (SoR)",
+    result:"Workflow: Loan Status Query via Query Agent\nResult: Status ask answered · Ticket #5108 Resolved → Closed · Loan case still in progress (SoR)",
     run:[
       {id:"inbound",nodeId:"inbound",k:"ok",agent:"Orchestrator",node:"Email Intake",title:"Email Intake",
         taskId:"T1",stepId:"intake",action:"Accept inbound mail into Autopilot",result:"ok",
@@ -586,54 +610,58 @@ const FIXTURES={
           summary:"Ask: Why is my mortgage still pending? What can I do next?\nAutopilot: — (just opened)\nHuman: —\nWaiting: —\nTicket: Open · consultation not started\nLoan case (SoR): separate — not this ticket yet"}},
       {id:"orch",nodeId:"orch",k:"ok",agent:"Orchestrator",node:"Orchestrator",title:"Orchestrator",
         taskId:"T1",stepId:"orch",doneTask:true,action:"Decide Autopilot eligibility · attach guardrails",result:"ok",
-        data:{input:{identity_verified:true,ticket_id:"#5108"},tools:{lane_gate:"evaluate"},output:{autopilot_eligible:true,candidate_workflow:["loan_status","transaction_dispute"],guardrails:"read_only"}},
+        data:{input:{identity_verified:true,ticket_id:"#5108"},tools:{lane_gate:"evaluate"},output:{lane:"autopilot",autopilot_eligible:true,guardrails:"read_only"}},
         mails:[],
         ticket:{status:"In Progress",owner:"Autopilot",statusClass:"progress",
           note:"Autopilot eligible · routing started.",
           summary:"Ask: Why pending + what next?\nAutopilot: Eligible · guardrails read_only · routing to Query\nHuman: —\nWaiting: —\nTicket: In Progress\nLoan case (SoR): will be read for status facts only"}},
-      {id:"routing",nodeId:"routing-parse",k:"ok",agent:"Routing Agent",node:"Read & Extract",title:"Routing · Read & Extract",
-        taskId:"T2",stepId:"parse",action:"Parse mail · extract topic / entities / language",result:"ok",
-        data:{input:{subject:"Mortgage Status",body:"…still pending… what can I do next?"},tools:{parse_api:"mailbox.parse",llm:"extract"},output:{topic:"loan_status",entities:["mortgage_application"],sentiment:"neutral",language:"en"}},
+      {id:"routing",nodeId:"routing-read",k:"ok",agent:"Routing Agent",node:"Read",title:"Routing · Read",
+        taskId:"T2",stepId:"read",action:"Parse inbound mail — headers / body / attachments",result:"ok",
+        data:{input:{ticket_id:"#5108"},tools:{mailbox_api:"parse"},output:{subject:"Mortgage Status",body_text:"Is my mortgage application still pending now and why? What can I do next?",attachments:[],format:"text/html"}},
+        mails:[]},
+      {id:"routing",nodeId:"routing-extract",k:"ok",agent:"Routing Agent",node:"Extract",title:"Routing · Extract",
+        taskId:"T2",stepId:"extract",action:"Extract topic · entities · sentiment · language",result:"ok",
+        data:{input:{subject:"Mortgage Status",body_text:"…still pending… what can I do next?"},tools:{llm:"extract"},output:{topic:"loan_status",entities:["mortgage_application"],sentiment:"neutral",language:"en"}},
         mails:[]},
       {id:"routing",nodeId:"routing-understand",k:"ok",agent:"Routing Agent",node:"Understand",title:"Routing · Understand",
-        taskId:"T2",stepId:"understand",action:"Map extract to candidate topic",result:"ok",
-        data:{input:{topic:"loan_status"},tools:{llm:"intent_classify"},output:{intent:"loan_status",confidence:0.90}},
+        taskId:"T2",stepId:"understand",action:"Classify intent → Loan Status Query (confidence 0.90)",result:"ok",
+        data:{input:{topic:"loan_status"},tools:{llm:"intent_classify"},output:{intent:"Loan Status Query",confidence:0.90}},
         mails:[]},
       {id:"routing",nodeId:"routing-validate",k:"ok",agent:"Routing Agent",node:"Validate",title:"Routing · Validate",
-        taskId:"T2",stepId:"validate",action:"Gate confidence · required slots · routing rule",result:"pass",
-        data:{input:{confidence:0.90,threshold:0.85},tools:{rule_api:"routing.validate"},output:{pass:true,reason:{confidence_ok:true,slots_ok:true,matched_rule:"loan_status → query_agent"}}},
+        taskId:"T2",stepId:"validate",action:"Pass: confidence 0.90 ≥ 0.85 · slots ok · rule matched",result:"pass",
+        data:{input:{confidence:0.90,threshold:0.85},tools:{rule_api:"routing.validate"},output:{pass:true,reason:{confidence_ok:true,slots_ok:true,matched_rule:"Loan Status Query → Query Agent · Loan Status Query"}}},
         mails:[]},
       {id:"routing",nodeId:"routing-route",k:"ok",agent:"Routing Agent",node:"Route",title:"Routing · Route",
-        taskId:"T2",stepId:"route",doneTask:true,action:"Open Query task · set execution mode",result:"ok",
-        data:{input:{intent:"loan_status",risk:"low"},tools:{router_api:"route"},output:{route_to:"query_agent",execution_mode:"autopilot",human_approval_required:false}},
+        taskId:"T2",stepId:"route",doneTask:true,action:"Route → Query Agent · Workflow: Loan Status Query",result:"ok",
+        data:{input:{intent:"Loan Status Query",risk:"low"},tools:{router_api:"route"},output:{intent:"Loan Status Query",confidence:0.90,agent:"Query Agent",workflow:"Loan Status Query"}},
         mails:[],
-        ticket:{summary:"Ask: Why pending + what next?\nAutopilot: Routed to Query Agent (loan_status)\nHuman: —\nWaiting: —\nTicket: In Progress · answering the ask\nLoan case (SoR): read-only lookup"}},
+        ticket:{summary:"Ask: Why pending + what next?\nAutopilot: Routed to Query Agent · Workflow: Loan Status Query\nHuman: —\nWaiting: —\nTicket: In Progress · answering the ask\nLoan case (SoR): read-only lookup"}},
       {id:"query",nodeId:"query-retrieve",k:"ok",agent:"Query Agent",node:"Retrieve",title:"Query · Retrieve",
-        taskId:"T3",stepId:"retrieve",action:"Pull loan status from SoR",result:"ok",
-        data:{input:{intent:"loan_status",ticket_id:"#5108"},tools:{sor_api:"los.mortgage.status"},output:{appraisal:"completed",income_verification:"pending",underwriting:"pending"}},
+        taskId:"T3",stepId:"retrieve",action:"Loan Status Query · Pull loan status from SoR",result:"ok",
+        data:{input:{intent:"Loan Status Query",ticket_id:"#5108"},tools:{sor_api:"los.mortgage.status"},output:{appraisal:"completed",income_verification:"pending",underwriting:"pending"}},
         mails:[]},
       {id:"query",nodeId:"query-grounding",k:"ok",agent:"Query Agent",node:"Grounding",title:"Query · Grounding",
         taskId:"T3",stepId:"grounding",action:"Check reply facts against SoR",result:"pass",
         data:{input:{facts_ref:"sor_status"},tools:{grounding_api:"check"},output:{pass:true,reason:{grounded:true,relevant:true}}},
         mails:[]},
       {id:"query",nodeId:"query-generation",k:"ok",agent:"Query Agent",node:"Generation",title:"Query · Generation",
-        taskId:"T3",stepId:"generation",action:"Draft status-only reply under guardrails",result:"ok",
-        data:{input:{facts:{appraisal:"completed",income_verification:"pending"},guardrails:"read_only"},tools:{llm:"reply_draft"},output:{draft:"status + next step",policy:"status_only"}},
+        taskId:"T3",stepId:"generation",action:"Select template loan_status_reply@v2 · Fill KV slots from verified facts",result:"ok",
+        data:{input:{facts:{appraisal:"completed",income_verification:"pending"},guardrails:"read_only",workflow:"Loan Status Query"},tools:{template_engine:"select + fill",llm:"slot_extraction"},output:{template_id:"loan_status_reply@v2",slots:{customer_name:"Mike",appraisal_status:"completed",pending_reason:"income verification still being completed",next_step:"Once income verification is complete, the underwriter will review..."},draft_ready:true,policy:"status_only"}},
         mails:[]},
       {id:"query",nodeId:"query-verify",k:"ok",agent:"Query Agent",node:"Verify",title:"Query · Verify",
         taskId:"T3",stepId:"verify",action:"Align draft vs SoR before send",result:"pass",
         data:{input:{draft_ref:"reply_v1"},tools:{verify_api:"align_check"},output:{pass:true,reason:{align_ok:true,allow_send:true}}},
         mails:[]},
       {id:"query",nodeId:"query-output",k:"ok",agent:"Query Agent",node:"Output",title:"Query · Output",
-        taskId:"T3",stepId:"output",doneTask:true,action:"Send reply · update ticket · update tasks",result:"ok",
-        data:{input:{draft_verified:true},tools:{email_api:"send",ticket_api:"write"},output:{email_sent:true,ticket_status:"Resolved",ask_answered:["why_pending","next_step"],task_list_updated:true}},
+        taskId:"T3",stepId:"output",doneTask:true,action:"Loan Status Query · Email written & sent · Ticket status update · Task list update",result:"ok",
+        data:{input:{draft_verified:true,template_id:"loan_status_reply@v2"},tools:{email_api:"send",ticket_api:"write"},output:{template_id:"loan_status_reply@v2",slots:{customer_name:"Mike",appraisal_status:"completed",pending_reason:"income verification still being completed",next_step:"Once income verification is complete, the underwriter will review your application",case_ref:"#5108"},email_written_and_sent:true,ticket_status_update:"Resolved",task_list_update:true,ask_answered:["why_pending","next_step"]}},
         mails:["A2"],
         ticket:{status:"Resolved",owner:"Autopilot",statusClass:"resolved",
           note:"Ask answered in reply #2 (why + next step).",
           summary:"Ask: Why pending + what next?\nAutopilot: Answered why (income verification still pending) and next step. Reply #2 sent.\nHuman: —\nWaiting: —\nTicket: Resolved · consultation done\nLoan case (SoR): still in progress (income verification) — not this ticket"}},
       {id:"output",nodeId:"output",k:"ok",agent:"System",node:"Close Loop",title:"Close the loop",
         taskId:"T4",stepId:"close",doneTask:true,action:"Update ticket status · write audit",result:"ok",
-        data:{input:{actor:"query_autopilot",mode:"AUTO"},tools:{ticket_api:"close",audit_api:"write"},output:{ticket_status:"Closed",audit_written:true}},
+        data:{input:{actor:"query_autopilot"},tools:{ticket_api:"close",audit_api:"write"},output:{ticket_status:"Closed",audit_written:true}},
         mails:[],
         ticket:{status:"Closed",owner:"Autopilot",statusClass:"closed",
           note:"Ticket closed. Loan case continues in SoR.",
@@ -648,22 +676,22 @@ const FIXTURES={
     tasks:[
       {id:"T1",title:"Orchestrator · Lane gate",agent:"Orchestrator",ticket:"#4821",steps:[
         {id:"intake",name:"Email Intake"},{id:"orch",name:"Orchestrator"}
-      ],result:{autopilot_eligible:true,candidate_workflow:["loan_status","transaction_dispute"],guardrails:"read_only"}},
+      ],result:{lane:"autopilot",autopilot_eligible:true,guardrails:"read_only"}},
       {id:"T2",title:"Routing · Multi-intent split",agent:"Routing Agent",ticket:"#4821",steps:[
-        {id:"parse",name:"Read & Extract"},{id:"understand",name:"Understand"},
+        {id:"read",name:"Read"},{id:"extract",name:"Extract"},{id:"understand",name:"Understand"},
         {id:"validate",name:"Validate"},{id:"route",name:"Route"}
-      ],result:{route_to:["doc_agent","exception_agent"],execution_mode:"autopilot",human_approval_required:true}},
-      {id:"T3",title:"Doc · Collect & validate",agent:"Doc Agent",ticket:"#4821",steps:[
-        {id:"check",name:"Check"},{id:"collect",name:"Secure Collection"},{id:"detect",name:"Detection"},
-        {id:"ocr",name:"OCR & Extract"},{id:"crosscheck",name:"Cross-check"},{id:"output",name:"Output"}
-      ],result:{docs_validated:true,ticket_status:"Waiting",email_sent:true}},
+      ],result:{primary_intent:"Dispute with Missing Doc",additional_intent:"Refund Request",dependency_check:"Refund requires validated evidence",confidence:0.85,primary_agent:"Doc Agent",workflow:"Dispute Transaction Doc Collection"}},
+      {id:"T3",title:"Doc Agent · Dispute Transaction Doc Collection",agent:"Doc Agent",ticket:"#4821",steps:[
+        {id:"check",name:"Check"},{id:"collect",name:"Secure Collection"},{id:"detect",name:"Detection & Validation"},
+        {id:"ocr",name:"OCR & Extraction"},{id:"crosscheck",name:"Cross-check"},{id:"output",name:"Output"}
+      ],result:{docs_validated:true,email_written_and_sent:true,ticket_status_update:"Waiting",task_list_update:true}},
       {id:"T4",title:"Exception · Refund block + Human",agent:"Exception Agent",ticket:"#4821",steps:[
         {id:"classify",name:"Classify"},{id:"human",name:"Human Handover"},
         {id:"hreply",name:"Specialist reply"}
-      ],result:{auto_refund:false,handover:"Priya N.",specialist_email_sent:true,ticket_status:"Resolved"}},
+      ],result:{auto_refund:false,handover:"Priya N.",specialist_email_sent:true,ticket_status_update:"Resolved"}},
       {id:"T5",title:"Close the loop",agent:"System",ticket:"#4821",steps:[
         {id:"close",name:"Close Loop"}
-      ],result:{ticket_status:"Closed",audit_written:true,mode:"DOC_AUTO + HUMAN"}}
+      ],result:{ticket_status:"Closed",audit_written:true}}
     ],
     delta:[
       {m:"Queue / route (night)",before:"~9 hours",after:"~1 minute"},
@@ -671,7 +699,7 @@ const FIXTURES={
       {m:"Refund",before:"agent-owned",after:"BLOCK · Human (no auto)"}
     ],
     skipGroups:["query"],skipNodes:["copilot"],
-    result:"Result: Docs validated · Human replied · Ticket #4821 Closed · Dispute case still under investigation",
+    result:"Workflow: Dispute Transaction Doc Collection via Doc Agent + Exception (Human)\nResult: Docs validated · Human replied · Ticket #4821 Closed · Dispute case still under investigation",
     run:[
       {id:"inbound",nodeId:"inbound",k:"ok",agent:"Orchestrator",node:"Email Intake",title:"Email Intake",
         taskId:"T1",stepId:"intake",action:"Accept inbound mail into Autopilot",result:"ok",
@@ -682,57 +710,61 @@ const FIXTURES={
           summary:"Ask: Unrecognized $4,800 jewelry charge — please refund?\nAutopilot: — (just opened)\nHuman: —\nWaiting: —\nTicket: Open\nDispute case (SoR): not started"}},
       {id:"orch",nodeId:"orch",k:"ok",agent:"Orchestrator",node:"Orchestrator",title:"Orchestrator",
         taskId:"T1",stepId:"orch",doneTask:true,action:"Decide Autopilot eligibility · attach guardrails",result:"ok",
-        data:{input:{identity_verified:true,ticket_id:"#4821"},tools:{lane_gate:"evaluate"},output:{autopilot_eligible:true,candidate_workflow:["loan_status","transaction_dispute"],guardrails:"read_only"}},
+        data:{input:{identity_verified:true,ticket_id:"#4821"},tools:{lane_gate:"evaluate"},output:{lane:"autopilot",autopilot_eligible:true,guardrails:"read_only"}},
         mails:[],
         ticket:{status:"In Progress",owner:"Autopilot",statusClass:"progress",
           note:"Autopilot eligible · money blocked · routing.",
-          summary:"Ask: Unrecognized $4,800 — refund?\nAutopilot: Eligible · money movement blocked · split Doc + Exception\nHuman: —\nWaiting: —\nTicket: In Progress\nDispute case (SoR): will open with collect"}},
-      {id:"routing",nodeId:"routing-parse",k:"ok",agent:"Routing Agent",node:"Read & Extract",title:"Routing · Read & Extract",
-        taskId:"T2",stepId:"parse",action:"Parse mail · extract topic / entities / language",result:"ok",
-        data:{input:{subject:"Strange Transaction",body:"$4,800 jewelry · ask refund"},tools:{parse_api:"mailbox.parse",llm:"extract"},output:{topic:"transaction_dispute",entities:["$4800","jewelry_store"],sentiment:"concerned",language:"en"}},
+          summary:"Ask: Unrecognized $4,800 — refund?\nAutopilot: Eligible · money movement blocked · Primary: Doc Agent · Workflow: Dispute Transaction Doc Collection\nHuman: —\nWaiting: —\nTicket: In Progress\nDispute case (SoR): will open with collect"}},
+      {id:"routing",nodeId:"routing-read",k:"ok",agent:"Routing Agent",node:"Read",title:"Routing · Read",
+        taskId:"T2",stepId:"read",action:"Parse inbound mail — headers / body / attachments",result:"ok",
+        data:{input:{ticket_id:"#4821"},tools:{mailbox_api:"parse"},output:{subject:"Strange Transaction",body_text:"I don't recognize this $4,800 transaction at a jewelry store. Could you refund?",attachments:[],format:"text/html"}},
+        mails:[]},
+      {id:"routing",nodeId:"routing-extract",k:"ok",agent:"Routing Agent",node:"Extract",title:"Routing · Extract",
+        taskId:"T2",stepId:"extract",action:"Extract topic · entities · sentiment · language",result:"ok",
+        data:{input:{subject:"Strange Transaction",body_text:"$4,800 jewelry · ask refund"},tools:{llm:"extract"},output:{topic:"transaction_dispute",entities:["$4800","jewelry_store"],sentiment:"concerned",language:"en"}},
         mails:[]},
       {id:"routing",nodeId:"routing-understand",k:"ok",agent:"Routing Agent",node:"Understand",title:"Routing · Understand",
-        taskId:"T2",stepId:"understand",action:"Split multi-intent topics",result:"ok",
-        data:{input:{topic:"transaction_dispute"},tools:{llm:"intent_classify"},output:{intents:["missing_doc","refund"],confidence:0.85}},
+        taskId:"T2",stepId:"understand",action:"Multi-intent: Dispute with Missing Doc + Refund Request (0.85)",result:"ok",
+        data:{input:{topic:"transaction_dispute"},tools:{llm:"intent_classify"},output:{primary_intent:"Dispute with Missing Doc",additional_intent:"Refund Request",confidence:0.85}},
         mails:[]},
       {id:"routing",nodeId:"routing-validate",k:"ok",agent:"Routing Agent",node:"Validate",title:"Routing · Validate",
-        taskId:"T2",stepId:"validate",action:"Gate confidence · slots · routing rules",result:"pass",
-        data:{input:{confidence:0.85,threshold:0.85},tools:{rule_api:"routing.validate"},output:{pass:true,reason:{confidence_ok:true,slots:{receipt:"missing"},matched_rules:["dispute+missing_doc → doc","refund → exception"]}}},
+        taskId:"T2",stepId:"validate",action:"Pass: confidence 0.85 ≥ 0.85 · receipt missing · Dependency: Refund requires validated evidence",result:"pass",
+        data:{input:{confidence:0.85,threshold:0.85},tools:{rule_api:"routing.validate"},output:{pass:true,reason:{confidence_ok:true,slots:{receipt:"missing"},dependency_check:"Refund requires validated evidence",matched_rules:["Dispute with Missing Doc → Doc Agent","Refund requires validated evidence"]}}},
         mails:[]},
       {id:"routing",nodeId:"routing-route",k:"ok",agent:"Routing Agent",node:"Route",title:"Routing · Route",
-        taskId:"T2",stepId:"route",doneTask:true,action:"Open Doc + Exception tasks",result:"ok",
-        data:{input:{intents:["missing_doc","refund"],risk:{doc:"low",refund:"high"}},tools:{router_api:"route"},output:{route_to:["doc_agent","exception_agent"],execution_mode:"autopilot",human_approval_required:true}},
+        taskId:"T2",stepId:"route",doneTask:true,action:"Route → Doc Agent · Workflow: Dispute Transaction Doc Collection · Refund deferred",result:"ok",
+        data:{input:{primary_intent:"Dispute with Missing Doc",additional_intent:"Refund Request",risk:{doc:"low",refund:"high"}},tools:{router_api:"route"},output:{primary_intent:"Dispute with Missing Doc",additional_intent:"Refund Request",dependency_check:"Refund requires validated evidence",confidence:0.85,primary_agent:"Doc Agent",workflow:"Dispute Transaction Doc Collection"}},
         mails:[],
-        ticket:{summary:"Ask: Unrecognized $4,800 — refund?\nAutopilot: Doc collect + Exception (refund blocked)\nHuman: will be required for refund decision\nWaiting: —\nTicket: In Progress\nDispute case (SoR): pending docs"}},
+        ticket:{summary:"Ask: Unrecognized $4,800 — refund?\nAutopilot: Primary: Doc Agent · Workflow: Dispute Transaction Doc Collection\nHuman: will be required for refund decision\nWaiting: —\nTicket: In Progress\nDispute case (SoR): pending docs"}},
       {id:"doc",nodeId:"doc-check",k:"ok",agent:"Doc Agent",node:"Check",title:"Doc · Check",
-        taskId:"T3",stepId:"check",action:"Load doc policies · money block",result:"ok",
-        data:{input:{intent:"missing_doc"},tools:{policy_api:"load"},output:{required_docs:["receipt"],money_block:true}},
+        taskId:"T3",stepId:"check",action:"Dispute Transaction Doc Collection · Load doc policies · money block",result:"ok",
+        data:{input:{intent:"Dispute with Missing Doc"},tools:{policy_api:"load"},output:{required_docs:["receipt"],money_block:true}},
         mails:[]},
       {id:"doc",nodeId:"doc-collect",k:"ok",agent:"Doc Agent",node:"Secure Collection",title:"Doc · Secure Collection",
-        taskId:"T3",stepId:"collect",action:"Send secure collect request",result:"ok",
-        data:{input:{required_docs:["receipt"],deadline:"48h"},tools:{collect_api:"create",email_api:"send"},output:{collect_url:"/secure/collect/4821",mail:"#2"}},
+        taskId:"T3",stepId:"collect",action:"Select template dispute_doc_request@v1 · Fill slots · Send secure collect",result:"ok",
+        data:{input:{required_docs:["receipt"],deadline:"48h"},tools:{collect_api:"create",template_engine:"select + fill",email_api:"send"},output:{collect_url:"/secure/collect/4821",template_id:"dispute_doc_request@v1",slots:{customer_name:"Emily",amount:4800,merchant:"jewelry store",case_id:"#4821",secure_link:"bank.com/secure/collect/4821",deadline:"48h"},mail:"#2"}},
         mails:["B2"],
         ticket:{status:"Waiting",owner:"Autopilot · Doc",statusClass:"waiting",
           note:"Waiting on customer receipt upload (48h).",
           summary:"Ask: Unrecognized $4,800 — refund?\nAutopilot: Sent secure collect (#2). Auto-refund blocked.\nHuman: — (later for refund)\nWaiting: Customer receipt within 48h\nTicket: Waiting\nDispute case (SoR): open · pending docs"}},
       {id:"doc",nodeId:"doc-collect",k:"ok",agent:"Doc Agent",node:"Secure Collection",title:"Doc · Reminder",
-        taskId:"T3",stepId:"collect",action:"Send compliant reminder",result:"ok",
-        data:{input:{ticket_id:"#4821",reminder:"T+1"},tools:{email_api:"send"},output:{mail:"#3"}},
+        taskId:"T3",stepId:"collect",action:"Select template dispute_doc_reminder@v1 · Send reminder",result:"ok",
+        data:{input:{ticket_id:"#4821",reminder:"T+1"},tools:{template_engine:"select + fill",email_api:"send"},output:{template_id:"dispute_doc_reminder@v1",slots:{customer_name:"Emily",amount:4800,case_id:"#4821",secure_link:"bank.com/secure/collect/4821"},mail:"#3"}},
         mails:["B2r"],
         ticket:{summary:"Ask: Unrecognized $4,800 — refund?\nAutopilot: Reminder #3 sent. Still blocked on money.\nHuman: —\nWaiting: Customer receipt (deadline from collect)\nTicket: Waiting\nDispute case (SoR): pending docs"}},
-      {id:"doc",nodeId:"doc-detect",k:"ok",agent:"Doc Agent",node:"Detection",title:"Doc · Upload received",
+      {id:"doc",nodeId:"doc-detect",k:"ok",agent:"Doc Agent",node:"Detection & Validation",title:"Doc · Upload received",
         taskId:"T3",stepId:"detect",action:"Attach customer upload",result:"ok",
         data:{input:{file_ref:"receipt_v1.jpg"},tools:{ticket_api:"attach"},output:{attached:true,mail:"#4"}},
         mails:["B2in"],
         ticket:{files:[{name:"receipt_v1.jpg",note:"customer upload"}],
           summary:"Ask: Unrecognized $4,800 — refund?\nAutopilot: Got upload #4 (receipt_v1.jpg) · quality check next\nHuman: —\nWaiting: Clearer doc if quality fails\nTicket: Waiting\nDispute case (SoR): docs in review"}},
-      {id:"doc",nodeId:"doc-detect",k:"ok",agent:"Doc Agent",node:"Detection",title:"Doc · Detection",
+      {id:"doc",nodeId:"doc-detect",k:"ok",agent:"Doc Agent",node:"Detection & Validation",title:"Doc · Detection & Validation",
         taskId:"T3",stepId:"detect",action:"Fraud + quality check",result:"pass",
-        data:{input:{file_ref:"receipt_v1.jpg"},tools:{fraud_api:"scan"},output:{pass:true,reason:{fraud_ok:true,quality:"blurry",action:"request_clearer"},mail:"#5"}},
+        data:{input:{file_ref:"receipt_v1.jpg"},tools:{fraud_api:"scan",template_engine:"select + fill",email_api:"send"},output:{pass:true,reason:{fraud_ok:true,quality:"blurry",action:"request_clearer"},template_id:"dispute_doc_resubmit@v1",slots:{customer_name:"Emily",amount:4800,merchant:"jewelry store",case_id:"#4821",secure_link:"bank.com/secure/collect/4821",rejection_reason:"image too blurry to validate merchant, amount, and date"},mail:"#5"}},
         mails:["B3"],
         ticket:{files:[{name:"receipt_v1.jpg",note:"blurry — rejected"}],
           summary:"Ask: Unrecognized $4,800 — refund?\nAutopilot: Rejected blurry upload · asked clearer copy (#5)\nHuman: —\nWaiting: Clearer receipt from customer\nTicket: Waiting\nDispute case (SoR): pending clearer doc"}},
-      {id:"doc",nodeId:"doc-ocr",k:"ok",agent:"Doc Agent",node:"OCR & Extract",title:"Doc · Resubmit received",
+      {id:"doc",nodeId:"doc-ocr",k:"ok",agent:"Doc Agent",node:"OCR & Extraction",title:"Doc · Resubmit received",
         taskId:"T3",stepId:"ocr",action:"OCR clearer receipt",result:"ok",
         data:{input:{file_ref:"receipt_v2.jpg"},tools:{ocr_api:"extract"},output:{merchant:"jewelry_store",amount:4800,conf:0.92,mail:"#6"}},
         mails:["B3in"],
@@ -741,8 +773,8 @@ const FIXTURES={
           note:"Clearer doc received · validating.",
           summary:"Ask: Unrecognized $4,800 — refund?\nAutopilot: OCR ok on receipt_v2 (#6) · cross-check next\nHuman: —\nWaiting: —\nTicket: In Progress · validating docs\nDispute case (SoR): docs nearly ready"}},
       {id:"doc",nodeId:"doc-output",k:"ok",agent:"Doc Agent",node:"Output",title:"Doc · Output",
-        taskId:"T3",stepId:"output",doneTask:true,action:"Cross-check · send under-review · update ticket",result:"ok",
-        data:{input:{ocr:{amount:4800},claim:{amount:4800}},tools:{llm:"cross_check",email_api:"send",ticket_api:"write"},output:{docs_validated:true,ticket_status:"Waiting",email_sent:true,mail:"#7"}},
+        taskId:"T3",stepId:"output",doneTask:true,action:"Select template dispute_under_review@v1 · Fill slots · Email written & sent · Ticket status update · Task list update",result:"ok",
+        data:{input:{ocr:{amount:4800},claim:{amount:4800}},tools:{llm:"cross_check",template_engine:"select + fill",email_api:"send",ticket_api:"write"},output:{template_id:"dispute_under_review@v1",slots:{customer_name:"Emily",amount:4800,case_id:"#4821",status:"Under Investigation"},docs_validated:true,email_written_and_sent:true,ticket_status_update:"Waiting",task_list_update:true,mail:"#7"}},
         mails:["B4"],
         ticket:{status:"Waiting",owner:"Queue · Dispute",statusClass:"waiting",
           files:[{name:"receipt_v2.jpg",note:"validated"}],
@@ -750,7 +782,7 @@ const FIXTURES={
           summary:"Ask: Unrecognized $4,800 — refund?\nAutopilot: Docs validated · under-review email (#7) · auto-refund blocked\nHuman: Needed for refund decision\nWaiting: Specialist takeover\nTicket: Waiting\nDispute case (SoR): under investigation (case continues)"}},
       {id:"exception",nodeId:"exception-classify",k:"ok",agent:"Exception Agent",node:"Classify",title:"Exception · Classify",
         taskId:"T4",stepId:"classify",action:"Block auto refund · build handover packet",result:"ok",
-        data:{input:{intent:"refund"},tools:{llm:"exception_route"},output:{auto_refund:false,path:"human",reason:"NO_MONEY"}},
+        data:{input:{intent:"Refund Request"},tools:{llm:"exception_route"},output:{auto_refund:false,path:"human",reason:"NO_MONEY"}},
         mails:[],
         ticket:{summary:"Ask: Unrecognized $4,800 — refund?\nAutopilot: Classified NO_MONEY → Human path\nHuman: Required\nWaiting: Specialist assignment\nTicket: Waiting\nDispute case (SoR): under investigation"}},
       {id:"human",nodeId:"human",k:"ok",agent:"Exception Agent",node:"Human Handover",title:"Human Handover",
@@ -771,7 +803,7 @@ const FIXTURES={
           summary:"Ask: Unrecognized $4,800 — refund?\nAutopilot: Collected & validated docs · blocked auto-refund\nHuman: Priya sent update (#8) — refund not auto; investigation continues\nWaiting: — (for this ticket)\nTicket: Resolved · customer informed; refund decision is case-level\nDispute case (SoR): still under investigation"}},
       {id:"output",nodeId:"output",k:"ok",agent:"System",node:"Close Loop",title:"Close the loop",
         taskId:"T5",stepId:"close",doneTask:true,action:"Update ticket status · write audit",result:"ok",
-        data:{input:{actor:"doc_autopilot+human",mode:"DOC_AUTO + HUMAN"},tools:{ticket_api:"close",audit_api:"write"},output:{ticket_status:"Closed",audit_written:true}},
+        data:{input:{actor:"doc_autopilot+human"},tools:{ticket_api:"close",audit_api:"write"},output:{ticket_status:"Closed",audit_written:true}},
         mails:[],
         ticket:{status:"Closed",owner:"Priya N. · Dispute",statusClass:"closed",
           note:"Ticket closed. Dispute case continues in SoR.",
@@ -787,27 +819,34 @@ const INNER_NODES={
     from:"Email Intake",
     simpleCtrl:"Autopilot when eligible · Require identity verification · Never Autopilot money movement",
     api:{endpoint:"POST /v1/lane/gate/evaluate",method:"POST",parameters:"case_id: string, identity: object",auth:"OAuth2 · autopilot:lane",limits:"20 req/s · 2s timeout"},
-    output:{schema:"{ autopilot_eligible: boolean, candidate_workflow: string[], guardrails: \"read_only\" }"},
+    output:{schema:"{ lane: \"autopilot\" | \"copilot\" | \"human\", autopilot_eligible: boolean, guardrails: \"read_only\" }"},
     governance:{threshold:"identity_verified = true",retry:"0 (fail-fast)",fallback:"→ Human queue",humanApproval:"Off"}
   }),
 
-  "routing:Read & Extract":cfgMod({
-    type:"composite",
-    subtitle:"Parse inbound mail and extract topic · entities · sentiment · language.",
+  "routing:Read":cfgMod({
+    type:"api",
+    subtitle:"Parse inbound mail — headers · body · attachments.",
     from:"Orchestrator",
-    model:{provider:"LLM",model:"finance-extract-v1",temperature:"0.0",prompt:"tpl:mailbox_extract@v1"},
     api:{endpoint:"POST /v1/mailbox/parse",method:"POST",parameters:"raw_mime | html_body",auth:"OAuth2 · mailbox:read",limits:"30 req/s · 3s timeout"},
+    output:{schema:"{ subject: string, body_text: string, attachments: string[], format: string }"},
+    governance:{threshold:"mail readable",retry:"1 × linear",fallback:"→ Exception Agent",humanApproval:"Off"}
+  }),
+  "routing:Extract":cfgMod({
+    type:"llm",
+    subtitle:"Extract topic · entities · sentiment · language from parsed mail.",
+    from:"Routing · Read",
+    model:{provider:"LLM",model:"finance-extract-v1",temperature:"0.0",prompt:"tpl:mailbox_extract@v1"},
     output:{schema:"{ topic: string, entities: string[], sentiment: string, language: string }"},
     governance:{threshold:"language_detect_conf ≥ 0.70",retry:"1 × linear",fallback:"→ Exception Agent",humanApproval:"Off"}
   }),
   "routing:Understand":cfgMod({
     type:"llm",
     subtitle:"Map extract to candidate topics / intents (supports multi-intent).",
-    from:"Routing · Read & Extract",
-    simpleCtrl:"Multi-intent split · Candidate topics",
+    from:"Routing · Extract",
+    simpleCtrl:"Multi-intent split · Candidate workflows",
     model:{provider:"LLM",model:"intent-classify-v3",temperature:"0.0",prompt:"tpl:intent_classify@v3"},
     knowledge:{sources:"Topic catalog",retrieval:"exact",topK:"—",filters:"active=true"},
-    output:{schema:"{ intents: string[], confidence: number, multi_intent: boolean }"},
+    output:{schema:"{ intent?: string, primary_intent?: string, additional_intent?: string, confidence: number }"},
     governance:{threshold:"confidence ≥ 0.85",retry:"0 (fail-fast)",fallback:"→ Exception Agent",humanApproval:"Off"}
   }),
   "routing:Validate":cfgMod({
@@ -817,17 +856,17 @@ const INNER_NODES={
     simpleCtrl:"Confidence threshold (θ) · Route refund / liability → Exception",
     knowledge:{sources:"Routing rule table · Required slots",retrieval:"rule",topK:"—",filters:"tenant_id=current"},
     api:{endpoint:"POST /v1/routing/validate",method:"POST",parameters:"confidence: number, slots: object",auth:"OAuth2 · routing:read",limits:"50 req/s · 1s timeout"},
-    output:{schema:"{ pass: boolean, reason: { confidence_ok: boolean, slots_ok: boolean, matched_rule: string } }"},
+    output:{schema:"{ pass: boolean, reason: { confidence_ok: boolean, slots_ok: boolean, dependency_check?: string, matched_rule: string } }"},
     governance:{threshold:"confidence ≥ θ (default 0.85)",retry:"0 (fail-fast)",fallback:"→ Exception Agent",humanApproval:"Off"}
   }),
   "routing:Route":cfgMod({
     type:"api",
-    subtitle:"Emit route_to · execution_mode · human_approval_required.",
+    subtitle:"Emit intent · agent · workflow (multi-intent: primary_agent + dependency_check).",
     from:"Routing · Validate",
     simpleCtrl:"Multi-intent split · Route refund / liability → Exception",
-    knowledge:{sources:"Risk lexicon · Agent eligibility matrix",retrieval:"rule",topK:"—",filters:"—"},
-    api:{endpoint:"POST /v1/router/route",method:"POST",parameters:"intent: string | string[], risk: object",auth:"OAuth2 · autopilot:route",limits:"50 req/s · 1s timeout"},
-    output:{schema:"{ route_to: string | string[], execution_mode: \"autopilot\", human_approval_required: boolean }"},
+    knowledge:{sources:"Risk lexicon · Agent eligibility matrix · Workflow catalog",retrieval:"rule",topK:"—",filters:"—"},
+    api:{endpoint:"POST /v1/router/route",method:"POST",parameters:"intent: string | object, risk: object",auth:"OAuth2 · autopilot:route",limits:"50 req/s · 1s timeout"},
+    output:{schema:"{ intent: string | { primary: string, additional?: string, dependency_check?: string }, confidence: number, agent: string, workflow: string }"},
     governance:{threshold:"money OR liability → Exception",retry:"0 (fail-fast)",fallback:"→ Exception Agent",humanApproval:"Off"}
   }),
 
@@ -853,11 +892,11 @@ const INNER_NODES={
   }),
   "query:Generation":cfgMod({
     type:"llm",
-    subtitle:"Draft status-only reply under policies & guardrails.",
+    subtitle:"Select email template · fill KV slots from verified facts · apply guardrails.",
     from:"Query · Grounding",
     model:{provider:"LLM",model:"cx-reply-v2",temperature:"0.2",prompt:"tpl:status_reply@v2"},
-    knowledge:{sources:"CX reply templates · disclosure",retrieval:"exact",topK:"3",filters:"intent=loan_status"},
-    output:{schema:"{ draft_email: string, case_status_patch: object, task_updates: object }"},
+    knowledge:{sources:"Email Templates (loan_status_reply@v2) · Response Policies · AI Disclosure",retrieval:"exact",topK:"1",filters:"workflow=Loan Status Query"},
+    output:{schema:"{ template_id: string, slots: object, draft_email: string, policy: string }"},
     governance:{threshold:"policy allows AUTO status send",retry:"1 × linear",fallback:"→ Exception / Copilot",humanApproval:"Off"}
   }),
   "query:Verify":cfgMod({
@@ -875,14 +914,14 @@ const INNER_NODES={
     from:"Query · Verify",
     simpleCtrl:"Auto-send status replies",
     api:{endpoint:"POST /v1/email/send + POST /v1/ticket/write",method:"POST",parameters:"to, subject, body, ticket_fields",auth:"OAuth2 · email:send · ticket:write",limits:"5 req/s · 5s timeout"},
-    output:{schema:"{ email_sent: boolean, ticket_status: \"Resolved\", ask_answered: string[], task_list_updated: boolean }"},
+    output:{schema:"{ email_written_and_sent: boolean, ticket_status_update: \"Resolved\", task_list_update: boolean, ask_answered: string[] }"},
     governance:{threshold:"verify pass",retry:"0 (fail-fast)",fallback:"→ Exception Agent",humanApproval:"Off · audit always"}
   }),
 
   "doc:Check":cfgMod({
     type:"api",
     subtitle:"Load dispute doc policies and confirm money block.",
-    from:"Routing · Route",
+    from:"Routing · Route (Dispute Transaction Doc Collection)",
     simpleCtrl:"Required documents · Block auto refund",
     knowledge:{sources:"Dispute doc policy · reminder cadence",retrieval:"exact",topK:"—",filters:"path=doc"},
     api:{endpoint:"GET /v1/policy/doc",method:"GET",parameters:"case_id: string",auth:"OAuth2 · policy:read",limits:"20 req/s · 1s timeout"},
@@ -895,21 +934,21 @@ const INNER_NODES={
     from:"Doc · Check",
     simpleCtrl:"Required documents · Reminder cadence",
     api:{endpoint:"POST /v1/secure/collect + POST /v1/email/send",method:"POST",parameters:"case_id, doc_types, ttl",auth:"OAuth2 · vault:write · email:send",limits:"5 req/s · 5s timeout"},
-    output:{schema:"{ collect_url: string, email_id: string, deadline: string }"},
+    output:{schema:"{ collect_url: string, template_id: string, slots: object, email_id: string, deadline: string }"},
     governance:{threshold:"collect URL issued",retry:"1 × linear",fallback:"→ Exception Agent",humanApproval:"Off"}
   }),
-  "doc:Detection":cfgMod({
+  "doc:Detection & Validation":cfgMod({
     type:"api",
-    subtitle:"Fraud + image quality check on customer upload.",
+    subtitle:"Fraud + quality check + validation on customer upload.",
     from:"Customer upload",
     api:{endpoint:"POST /v1/fraud/doc/check",method:"POST",parameters:"file_ref: string",auth:"OAuth2 · fraud:scan",limits:"5 req/s · 8s timeout"},
     output:{schema:"{ pass: boolean, reason: { fraud_ok: boolean, quality: string } }"},
     governance:{threshold:"fraud_ok = true",retry:"0 (fail-fast)",fallback:"→ Exception Agent (or clearer-doc nudge)",humanApproval:"Off"}
   }),
-  "doc:OCR & Extract":cfgMod({
+  "doc:OCR & Extraction":cfgMod({
     type:"api",
-    subtitle:"OCR field extract: merchant · amount · date.",
-    from:"Doc · Detection",
+    subtitle:"OCR field extraction: merchant · amount · date.",
+    from:"Doc · Detection & Validation",
     simpleCtrl:"OCR confidence gate",
     api:{endpoint:"POST /v1/ocr/analyze",method:"POST",parameters:"file_ref: string",auth:"OAuth2 · ocr:read",limits:"5 req/s · 10s timeout"},
     output:{schema:"{ merchant: string, amount: number, date: string, conf: number }"},
@@ -918,7 +957,7 @@ const INNER_NODES={
   "doc:Cross-check":cfgMod({
     type:"llm",
     subtitle:"Compare email claim vs OCR fields; fail on mismatch.",
-    from:"Doc · OCR & Extract",
+    from:"Doc · OCR & Extraction",
     simpleCtrl:"Strict claim vs OCR cross-check",
     model:{provider:"LLM",model:"cross-check-v1",temperature:"0.0",prompt:"tpl:claim_ocr_crosscheck@v1"},
     output:{schema:"{ pass: boolean, reason: { match: boolean, deltas: string[] } }"},
@@ -930,7 +969,7 @@ const INNER_NODES={
     from:"Doc · Cross-check",
     simpleCtrl:"Block auto refund",
     api:{endpoint:"POST /v1/email/send + POST /v1/ticket/write",method:"POST",parameters:"ticket_status=Waiting, ticket_fields",auth:"OAuth2 · email:send · ticket:write",limits:"5 req/s · 5s timeout"},
-    output:{schema:"{ email_sent: boolean, ticket_status: \"Waiting\", docs_validated: boolean }"},
+    output:{schema:"{ template_id: string, slots: object, email_written_and_sent: boolean, ticket_status_update: \"Waiting\", task_list_update: boolean, docs_validated: boolean }"},
     governance:{threshold:"cross-check pass",retry:"0 (fail-fast)",fallback:"→ Exception Agent",humanApproval:"Off · money still BLOCK"}
   }),
 
@@ -968,6 +1007,16 @@ const INNER_NODES={
     api:{endpoint:"POST /v1/learn/upsert",method:"POST",parameters:"labels: string[], root_cause: string",auth:"OAuth2 · learn:write",limits:"5 req/s · 2s timeout"},
     output:{schema:"{ rule_hints: string[] }"},
     governance:{threshold:"labels present",retry:"0 (fail-fast)",fallback:"—",humanApproval:"Required"}
+  }),
+
+  "system:Close Loop":cfgMod({
+    type:"api",
+    subtitle:"Update ticket status · update task list · write audit log.",
+    from:"Query · Output | Doc · Output | Human · Handover",
+    simpleCtrl:"Update ticket status · Update task list · Write audit log",
+    api:{endpoint:"POST /v1/ticket/close + POST /v1/audit/write",method:"POST",parameters:"ticket_id: string, actor: string",auth:"OAuth2 · ticket:write · audit:write",limits:"10 req/s · 2s timeout"},
+    output:{schema:"{ ticket_status: \"Closed\", audit_written: boolean }"},
+    governance:{threshold:"preceding task done",retry:"0 (fail-fast)",fallback:"—",humanApproval:"Off · audit always"}
   })
 };
 
@@ -988,6 +1037,7 @@ let wfAwaitHuman=false;
 let wfTakeoverPhase=null; // null | 'await' | 'done'
 let wfTakeoverAfter=0;    // insert takeover card after this many mails
 let wfHumanResume=null;
+let wfActiveWorkflow=null;
 
 function fx(){return FIXTURES[wfLastKind]}
 function wfNodeById(id){return WF_NODES.find(n=>n.id===id)}
@@ -1008,7 +1058,7 @@ function edgeSvg(e){
   const A=wfNodeById(e.a),B=wfNodeById(e.b);
   if(!A||!B)return "";
   const off=e.offset||0;
-  let x1,y1,x2,y2,d;
+  let x1,y1,x2,y2,d,labelX,labelY;
   if(e.dir==="h"){
     const leftToRight=A.x<B.x;
     x1=leftToRight?A.x+nw(A):A.x;y1=ncy(A)+off;
@@ -1016,20 +1066,28 @@ function edgeSvg(e){
     const dx=Math.max(40,Math.abs(x2-x1)*0.45);
     if(leftToRight) d=`M${x1} ${y1} C${x1+dx} ${y1}, ${x2-dx} ${y2}, ${x2} ${y2}`;
     else d=`M${x1} ${y1} C${x1-dx} ${y1}, ${x2+dx} ${y2}, ${x2} ${y2}`;
+    labelX=(x1+x2)/2; labelY=y1-8;
   }else if(e.dir==="fan"){
     x1=ncx(A);y1=A.y+nh(A);x2=ncx(B)+off;y2=B.y;
     const mid=y1+22+Math.abs(off)*0.3;
     d=`M${x1} ${y1} C${x1} ${mid}, ${x2} ${mid}, ${x2} ${y2}`;
+    labelX=(x1+x2)/2+off*0.35; labelY=mid-4;
   }else{
     x1=ncx(A);y1=A.y+nh(A);x2=ncx(B);y2=B.y;
     const mid=(y1+y2)/2;
     d=`M${x1} ${y1} C${x1} ${mid}, ${x2} ${mid}, ${x2} ${y2}`;
+    labelX=(x1+x2)/2; labelY=mid-6;
   }
   const fail=e.cls==="fail";
   const stroke=fail?"#dc2626":"#c5cbd4";
   const dash=fail?' stroke-dasharray="5 4"':"";
   const marker=fail?"url(#arrFail)":"url(#arr)";
-  return `<path d="${d}" fill="none" stroke="${stroke}" stroke-width="1.6"${dash} marker-end="${marker}"/>`;
+  let label="";
+  if(e.workflowEdge&&wfActiveWorkflow&&e.workflowEdge===wfActiveWorkflow){
+    const short=e.workflowEdge.length>28?e.workflowEdge.slice(0,26)+"…":e.workflowEdge;
+    label=`<text x="${labelX}" y="${labelY}" text-anchor="middle" font-size="9" font-family="JetBrains Mono,ui-monospace,monospace" font-weight="700" fill="#1a1d23">${escHtml(short)}</text>`;
+  }
+  return `<path d="${d}" fill="none" stroke="${stroke}" stroke-width="1.6"${dash} marker-end="${marker}"/>${label}`;
 }
 
 function toolTypeClass(n){
@@ -1068,7 +1126,22 @@ function nodeMetaHtml(n){
 function renderWfCanvas(){
   const stage=document.getElementById("wfStage");
   if(!stage)return;
-  const zones=LANE_ZONES.map(z=>`<div class="lane-zone" style="left:${z.x}px;top:${z.y}px;width:${z.w}px;height:${z.h}px;background:${z.color};border-color:${z.border}"><span class="lz-title" style="color:${z.title}">${z.label}</span></div>`).join("");
+  const f=fx();
+  const skipGroups=new Set((f&&f.skipGroups)||[]);
+  const zones=LANE_ZONES.map(z=>{
+    const wfs=z.workflows||[];
+    const hasActive=!!(wfActiveWorkflow&&wfs.includes(wfActiveWorkflow));
+    const isDim=skipGroups.has(z.group)&&(!!wfActiveWorkflow||Object.keys(wfMark).length>0);
+    const cls=(isDim?" dim":"")+(hasActive?" active-wf":"");
+    const border=hasActive?z.title:z.border;
+    const wfHtml=wfs.length
+      ?`<div class="lz-workflows" style="color:${z.title}">${wfs.map(w=>{
+          const on=wfActiveWorkflow&&w===wfActiveWorkflow;
+          return `<span class="lz-wf${on?" on":""}">${on?"▸ ":""}${escHtml(w)}</span>`;
+        }).join("")}</div>`
+      :"";
+    return `<div class="lane-zone${cls}" style="left:${z.x}px;top:${z.y}px;width:${z.w}px;height:${z.h}px;background:${z.color};border-color:${border}"><span class="lz-title" style="color:${z.title}">${escHtml(z.label)}</span>${wfHtml}</div>`;
+  }).join("");
   const linesSvg=WF_EDGES.map(edgeSvg).join("");
   const nodes=WF_NODES.map(n=>{
     const run=wfMark[n.id]||"";
@@ -1219,6 +1292,7 @@ function applyTaskBeat(st){
     wfTaskProg[st.taskId].status="done";
     const out=(st.data&&st.data.output)||tdef.result||null;
     if(out) wfTaskResults[st.taskId]=rewriteMailRefs(out);
+    if(out&&out.workflow) wfActiveWorkflow=out.workflow;
   }
   st._newTask=isNewTask;
   return true;
@@ -1323,12 +1397,26 @@ function renderLogPane(box){
     const resCls=result==="pass"||result==="ok"?"ok":(result==="fail"||result==="risk"?"risk":"ok");
     const human=!!st.human;
     const humanBadge=human?`<span class="log-human">human</span>`:"";
+    let taskBadge="";
+    if(st.taskId){
+      const tdef=taskById(st.taskId);
+      let short=(tdef&&tdef.title)||st.taskId;
+      // Prefer workflow name when title is "Agent · Workflow"
+      if(tdef&&tdef.title&&tdef.title.indexOf(" · ")>=0){
+        const parts=tdef.title.split(" · ");
+        short=parts[parts.length-1];
+      }else if(tdef&&tdef.title){
+        short=tdef.title.replace(/^Routing · /i,"Routing").replace(/^Orchestrator · /i,"Orchestrator").replace(/^Close the loop$/i,"Close");
+      }
+      taskBadge=`<span class="log-task">${escHtml(st.taskId)} · ${escHtml(short)}</span>`;
+    }
     return `<div class="log-row ${cls}" data-log="${i}">
       <div class="log-dot"></div>
       <div class="log-meta">
         <span class="log-time">${escHtml(time)}</span>
         <span class="log-agent">${escHtml(agent)}</span>
         <span class="log-node">${escHtml(node)}</span>
+        ${taskBadge}
         ${humanBadge}
       </div>
       <div class="log-action">${escHtml(action)}</div>
@@ -1631,6 +1719,7 @@ function runWfTest(kind){
   wfLogs=[];wfLogSeq=0;wfResult="";wfMark={};wfDur={};
   wfLiveMails=[];wfStepData={};wfTaskProg={};
   wfOpenTasks=[];wfTaskResults={};wfTicketLive=null;wfTicketLogs=[];
+  wfActiveWorkflow=null;
   applySkip(f);
   setRightTab();renderWfCanvas();
   renderSidePanels();
@@ -1776,6 +1865,7 @@ document.getElementById("wfFixture").addEventListener("change",e=>{
   wfRunning=false;wfLogs=[];wfResult="";wfMark={};wfDur={};
   wfLiveMails=[];wfStepData={};wfTaskProg={};wfOpenTasks=[];wfTaskResults={};wfTicketLive=null;wfTicketLogs=[];
   wfTasksLocked=false;wfAwaitHuman=false;wfTakeoverPhase=null;wfTakeoverAfter=0;wfHumanResume=null;
+  wfActiveWorkflow=null;
   wfTab="tickets";
   applySkip(fx());
   setRightTab();renderWfCanvas();renderSidePanels();
