@@ -4,9 +4,6 @@ Interactive terminal walkthrough of the Meridian Trust multi-agent email workflo
 
 Mock data only — **no live APIs, LLM calls, or network lookups**.
 
-> **Repo path:** [`EmailAutopilot/cli-demo`](.)  
-> Visual Admin Canvas: see sibling docs under `EmailAutopilot/` (README·中文 / README·EN).
-
 ---
 
 ## Requirements
@@ -27,12 +24,14 @@ python3 run.py
 
 ### Flags
 
-| Flag | Meaning |
-|---|---|
-| `--auto` | Auto-play (no Enter pauses) |
-| `--speed 2` | Faster playback |
-| `--no-color` | Disable ANSI colors |
-| `--case A` / `--case B` | Jump straight into a case |
+
+| Flag                    | Meaning                     |
+| ----------------------- | --------------------------- |
+| `--auto`                | Auto-play (no Enter pauses) |
+| `--speed 2`             | Faster playback             |
+| `--no-color`            | Disable ANSI colors         |
+| `--case A` / `--case B` | Jump straight into a case   |
+
 
 ```bash
 python3 run.py --auto --speed 3 --case A
@@ -40,6 +39,8 @@ python3 run.py --case B
 ```
 
 ---
+
+
 
 ## Menu
 
@@ -49,7 +50,11 @@ python3 run.py --case B
 
 ---
 
+
+
 ## Cases at a glance
+
+
 
 ### Case A · Mike · `#5108`
 
@@ -58,12 +63,16 @@ Orchestrator → Routing → Query → Close
 Ticket: Open → In Progress → Resolved → Closed
 ```
 
-| Task | Agent |
-|---|---|
-| T1 Lane gate | Orchestrator |
+
+| Task                  | Agent         |
+| --------------------- | ------------- |
+| T1 Lane gate          | Orchestrator  |
 | T2 Understand & route | Routing Agent |
-| T3 Answer loan status | Query Agent |
-| T4 Close the loop | System |
+| T3 Answer loan status | Query Agent   |
+| T4 Close the loop     | System        |
+
+
+
 
 ### Case B · Emily · `#4821`
 
@@ -72,17 +81,21 @@ Orchestrator → Routing → Doc → Exception → Human → Close
 Ticket: Open → In Progress → Waiting → … → Resolved → Closed
 ```
 
-| Task | Agent |
-|---|---|
-| T1 Lane gate | Orchestrator |
-| T2 Multi-intent split | Routing Agent |
-| T3 Collect & validate | Doc Agent |
+
+| Task                    | Agent           |
+| ----------------------- | --------------- |
+| T1 Lane gate            | Orchestrator    |
+| T2 Multi-intent split   | Routing Agent   |
+| T3 Collect & validate   | Doc Agent       |
 | T4 Refund block + Human | Exception Agent |
-| T5 Close the loop | System |
+| T5 Close the loop       | System          |
+
 
 At **Human Handover** the CLI pauses — press Enter to simulate specialist takeover.
 
 ---
+
+
 
 ## What you will see
 
@@ -95,6 +108,8 @@ At **Human Handover** the CLI pauses — press Enter to simulate specialist take
 - **Memory & Context dump** at the end (working context, ticket timeline, task results, mail stream)
 
 ---
+
+
 
 ## Layout
 
@@ -113,6 +128,8 @@ cli-demo/
 ```
 
 ---
+
+
 
 ## Note for GitHub visitors
 
